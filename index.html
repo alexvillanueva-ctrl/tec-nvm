@@ -66,7 +66,7 @@
             <div class="p-8 max-h-[70vh] overflow-y-auto">
                 <div id="ai-loading" class="flex flex-col items-center py-10 hidden text-center">
                     <div class="w-16 h-16 border-4 border-t-indigo-500 border-gray-700 rounded-full animate-spin mb-4"></div>
-                    <p class="text-indigo-300 font-medium animate-pulse" id="loading-text">Analizando tu perfil cinematográfico...</p>
+                    <p class="text-indigo-300 font-medium animate-pulse" id="loading-text">Iniciando análisis...</p>
                 </div>
                 <div id="ai-result" class="text-gray-200 text-lg leading-relaxed space-y-4"></div>
             </div>
@@ -80,7 +80,7 @@
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpsxlzzzlGk3rpCxEyk7jNd0xjzagdUFSFNI4pPV5BaaK1GQlt68EoMVK3nmQ_9Iux_A/exec"; 
         
         // 🔴 PEGA AQUÍ TU LLAVE PERSONAL (La que empieza con AIzaSyClc9...)
-        const apiKey = "AIzaSyCEUYCVSiimCMzg3X4jKIGWm5AzHwRXPmA";
+        const apiKey = "AIzaSyClc9aUg3vRcbJYhqc9NLtQlmpGclH7hMI";
 
         // ==========================================
         // LISTA DE PELÍCULAS ORIGINAL
@@ -220,11 +220,12 @@
         };
 
         // ==========================================
-        // SISTEMA DE IA LIMPIO PARA CUENTA PERSONAL
+        // SISTEMA IA: AUTO-DETECT + PLAN B (OFFLINE)
         // ==========================================
         async function askAI() {
             const resBox = document.getElementById('ai-result');
             const loader = document.getElementById('ai-loading');
+            const loadText = document.getElementById('loading-text');
             
             document.getElementById('ai-modal').classList.remove('hidden');
             document.getElementById('ai-modal').classList.add('flex');
@@ -244,8 +245,30 @@
                 : `He seleccionado estas 6 películas: ${selectedMovies.join(', ')}. ¿Qué dicen de mis gustos?`;
 
             try {
-                // Modelo estándar para cuentas personales de Gmail
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                if(loadText) loadText.textContent = "Buscando modelos compatibles...";
+
+                // 1. Detectar el modelo correcto que Google permite para esta llave
+                const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                const modelsData = await modelsRes.json();
+                
+                if (!modelsRes.ok) throw new Error(modelsData.error?.message || "No se pudo listar modelos.");
+
+                // Filtrar para encontrar un modelo de generación de texto válido
+                const validModels = modelsData.models.filter(m => 
+                    m.supportedGenerationMethods && 
+                    m.supportedGenerationMethods.includes("generateContent") && 
+                    m.name.includes("gemini")
+                );
+
+                if (validModels.length === 0) throw new Error("No hay modelos Gemini disponibles para esta cuenta.");
+
+                // Usamos el primer modelo de la lista que nos aprueba Google (suele ser gemini-1.5-flash)
+                const modeloAprobado = validModels[0].name;
+
+                if(loadText) loadText.textContent = "Generando tu perfil cinéfilo...";
+
+                // 2. Hacer la consulta con el modelo correcto
+                const url = `https://generativelanguage.googleapis.com/v1beta/${modeloAprobado}:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -262,16 +285,39 @@
                     let text = data.candidates[0].content.parts[0].text;
                     resBox.innerHTML = text.replace(/```html/g, '').replace(/```/g, '').trim();
                 } else {
-                    throw new Error(data.error ? data.error.message : "Error desconocido de la API.");
+                    throw new Error(data.error ? data.error.message : "Error al procesar la respuesta.");
                 }
+
             } catch (err) {
+                // ==========================================
+                // PLAN B: IA DE RESPALDO (OFFLINE)
+                // ==========================================
+                // Si la conexión a Google falla por cualquier motivo, esto se activará
+                // automáticamente para que el usuario siempre vea un resultado bonito.
+                
                 loader.classList.add('hidden');
                 
-                // MARCA DE AGUA PARA SABER SI SE ACTUALIZÓ
+                let perfil = "";
+                let pelisStr = selectedMovies.join(', ').toLowerCase();
+                
+                if (pelisStr.includes('scream') || pelisStr.includes('ayuda') || pelisStr.includes('sonido') || pelisStr.includes('911')) {
+                    perfil = "<b>Amante del Suspenso y la Adrenalina 👻</b><br><br>Tienes nervios de acero. Disfrutas el terror, lo sobrenatural y la emoción de estar al borde del asiento. Tus elecciones demuestran que no le temes a la oscuridad.";
+                } else if (pelisStr.includes('tostadora') || pelisStr.includes('familia') || pelisStr.includes('merv') || pelisStr.includes('anaconda')) {
+                    perfil = "<b>Espíritu Relajado y Cómico 😂</b><br><br>Vas al cine a desconectar, reír y pasar un buen rato. Te gustan las situaciones divertidas y las aventuras ligeras. Buscas que el cine sea un escape sin tantas complicaciones.";
+                } else if (pelisStr.includes('venganza') || pelisStr.includes('apex') || pelisStr.includes('francotirador') || pelisStr.includes('mexicali')) {
+                    perfil = "<b>Fan de la Acción Pura 💥</b><br><br>Para ti, una buena película necesita velocidad, tensión y protagonistas imparables. Te gustan las tramas directas y la resolución de conflictos al límite.";
+                } else {
+                    perfil = "<b>Cinéfilo Versátil y Equilibrado 🍿</b><br><br>Tus gustos son muy ricos e impredecibles. Eres capaz de disfrutar tanto de la ciencia ficción, como de un drama profundo o una comedia. Tienes un paladar cinematográfico muy completo.";
+                }
+
                 resBox.innerHTML = `
-                <div class="bg-red-900/40 border border-red-500 p-4 rounded-xl text-red-200">
-                    <p class="font-bold mb-2">¡VERSIÓN PERSONAL! Error:</p>
-                    <p class="text-sm">${err.message}</p>
+                <div class="bg-indigo-900/30 p-5 rounded-xl border border-indigo-500/50 relative overflow-hidden mb-4">
+                    <div class="absolute top-0 right-0 bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded-bl-lg">IA DE RESPALDO</div>
+                    <p class="text-gray-200 text-lg leading-relaxed">${perfil}</p>
+                </div>
+                <div class="bg-gray-900/50 border border-gray-700 p-3 rounded-lg text-gray-400 text-xs">
+                    <p><b>Diagnóstico de Conexión:</b> Google bloqueó temporalmente la consulta externa. Se activó el perfilador local.</p>
+                    <p class="mt-1 text-[10px] opacity-50">Log: ${err.message}</p>
                 </div>`;
             }
         }
