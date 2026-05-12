@@ -60,7 +60,7 @@
     <div id="ai-modal" class="fixed inset-0 bg-black/90 z-[100] hidden items-center justify-center p-4 backdrop-blur-md">
         <div class="bg-gray-800 border border-indigo-500 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl">
             <div class="bg-indigo-900/50 p-5 flex justify-between items-center border-b border-indigo-500/30">
-                <h3 class="text-xl font-bold text-indigo-100 italic">✨ Alviher Cinema Intelligence</h3>
+                <h3 class="text-xl font-bold text-indigo-100 italic">✨ Gemini Cinema Intelligence</h3>
                 <button id="btn-close-ai" class="text-white text-3xl hover:text-red-500">&times;</button>
             </div>
             <div class="p-8 max-h-[70vh] overflow-y-auto">
@@ -219,6 +219,15 @@
             }
         };
 
+        // Función para barajar (mezclar) la lista y evitar respuestas repetitivas de la IA
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
         // ==========================================
         // SISTEMA IA: AUTO-DETECT + PLAN B + REGLA DE MÍNIMOS
         // ==========================================
@@ -240,7 +249,7 @@
                 <div class="text-center p-8">
                     <i class="fa-solid fa-magnifying-glass-chart text-6xl text-indigo-400 mb-5 animate-bounce"></i>
                     <h4 class="text-2xl font-black text-white mb-3">¡Necesito más pistas! 🕵️‍♂️</h4>
-                    <p class="text-gray-300 mb-8 text-lg">Por favor, selecciona al menos <strong>2 o 3 películas</strong> de la cartelera para poder evaluar correctamente tu perfil cinéfilo.</p>
+                    <p class="text-gray-300 mb-8 text-lg">Por favor, selecciona al menos <strong>2 o 3 películas</strong> de la cartelera para que pueda evaluar correctamente tu perfil cinéfilo.</p>
                     <button onclick="document.getElementById('ai-modal').classList.add('hidden'); document.getElementById('ai-modal').classList.remove('flex');" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-10 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 text-lg">
                         <i class="fa-solid fa-hand-pointer mr-2"></i> Ir a seleccionar
                     </button>
@@ -254,12 +263,17 @@
                 return;
             }
 
-            // INSTRUCCIONES ESTRICTAS PARA EVITAR EL "FLORO"
-            const systemPrompt = "Eres un recomendador de cine experto y directo. CERO palabrería. Tu objetivo es: 1) Resumir en UNA ORACIÓN el gusto del usuario según sus películas elegidas. 2) Recomendarle directamente 2 PELÍCULAS DEL CATÁLOGO QUE TE DARÁ EL USUARIO (que aún no haya visto), explicando por qué en una línea cada una. Usa HTML (<b>, <br>, <ul>, <li>).";
+            // INSTRUCCIONES ESTRICTAS: 1ra Persona Singular y Cero Floro
+            const systemPrompt = "Eres un recomendador de cine experto y directo. CERO palabrería. Habla SIEMPRE en primera persona del singular (ej. 'Te recomiendo', 'He notado que'). NUNCA uses plural. Tu objetivo es: 1) Resumir en UNA ORACIÓN el gusto del usuario según sus películas elegidas. 2) Recomendarle directamente 2 PELÍCULAS DEL CATÁLOGO QUE TE DARÁ EL USUARIO (que aún no haya seleccionado), explicando por qué en una línea cada una. Usa HTML (<b>, <br>, <ul>, <li>).";
             
-            // REGLA 2: Calcular cuántas faltan, extraer las NO seleccionadas e indicarlo en el Prompt
+            // REGLA 2: Calcular cuántas faltan y extraer las NO seleccionadas
             let faltantes = 6 - selectedMovies.length;
-            let disponibles = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m => m.title).join(', ');
+            
+            // MAGIA: Mezclamos el catálogo para que la IA siempre lea opciones distintas primero
+            let disponiblesArray = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m => m.title);
+            disponiblesArray = shuffleArray(disponiblesArray);
+            let disponibles = disponiblesArray.join(', ');
+            
             let userPrompt = "";
 
             if (faltantes > 0) {
@@ -287,7 +301,7 @@
 
                 const modeloAprobado = validModels[0].name;
 
-                if(loadText) loadText.textContent = "Generando recomendaciones directas...";
+                if(loadText) loadText.textContent = "Generando recomendaciones personalizadas...";
 
                 // 2. Hacer la consulta con el modelo correcto
                 const url = `https://generativelanguage.googleapis.com/v1beta/${modeloAprobado}:generateContent?key=${apiKey}`;
@@ -312,7 +326,7 @@
 
             } catch (err) {
                 // ==========================================
-                // PLAN B: IA DE RESPALDO CON RECOMENDACIONES DE TU CATÁLOGO
+                // PLAN B: IA DE RESPALDO (MEZCLADA Y EN SINGULAR)
                 // ==========================================
                 loader.classList.add('hidden');
                 
@@ -321,47 +335,47 @@
                 let pelisStr = selectedMovies.join(', ').toLowerCase();
                 
                 if (pelisStr.includes('scream') || pelisStr.includes('ayuda') || pelisStr.includes('sonido') || pelisStr.includes('911')) {
-                    perfil = "Tu estilo es adrenalina pura: buscas tensión, terror y misterio al límite.";
-                    let recs = ["Scream 7", "¡Ayuda! (Send Help)", "El sonido de la muerte", "911: Llamada Infernal"].filter(m => !selectedMovies.includes(m));
-                    if(recs.length < 2) recs = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title);
+                    perfil = "Veo que tu estilo es adrenalina pura: buscas tensión, terror y misterio al límite.";
+                    let recs = shuffleArray(["Scream 7", "¡Ayuda! (Send Help)", "El sonido de la muerte", "911: Llamada Infernal"].filter(m => !selectedMovies.includes(m)));
+                    if(recs.length < 2) recs = shuffleArray(moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title));
                     recomendaciones = `
                         <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
                             <li><b>${recs[0]}:</b> Ideal para mantenerte al borde del asiento con su suspenso.</li>
                             <li><b>${recs[1]}:</b> Terror y tensión pura que encaja perfecto con tus gustos.</li>
                         </ul>`;
                 } else if (pelisStr.includes('tostadora') || pelisStr.includes('familia') || pelisStr.includes('merv') || pelisStr.includes('anaconda')) {
-                    perfil = "Buscas relajarte: te gusta el humor, la aventura ligera y pasar un buen rato sin complicaciones.";
-                    let recs = ["Tostadora (Toaster)", "Familia a la deriva", "Tom y Jerry: La brújula mágica", "Anaconda"].filter(m => !selectedMovies.includes(m));
-                    if(recs.length < 2) recs = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title);
+                    perfil = "Noto que buscas relajarte: te gusta el humor, la aventura ligera y pasar un buen rato.";
+                    let recs = shuffleArray(["Tostadora (Toaster)", "Familia a la deriva", "Tom y Jerry: La brújula mágica", "Anaconda"].filter(m => !selectedMovies.includes(m)));
+                    if(recs.length < 2) recs = shuffleArray(moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title));
                     recomendaciones = `
                         <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
                             <li><b>${recs[0]}:</b> Una comedia excelente para desconectar y reír.</li>
                             <li><b>${recs[1]}:</b> Situaciones divertidas aseguradas de principio a fin.</li>
                         </ul>`;
                 } else if (pelisStr.includes('venganza') || pelisStr.includes('apex') || pelisStr.includes('francotirador') || pelisStr.includes('mexicali')) {
-                    perfil = "Eres fan de la acción cruda: persecuciones, disparos y protagonistas que no se rinden.";
-                    let recs = ["Venganza", "Apex", "Francotirador sin nación", "Mexicali: Tierra sin ley"].filter(m => !selectedMovies.includes(m));
-                    if(recs.length < 2) recs = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title);
+                    perfil = "Percibo que eres fan de la acción cruda: persecuciones, disparos y tensión.";
+                    let recs = shuffleArray(["Venganza", "Apex", "Francotirador sin nación", "Mexicali: Tierra sin ley"].filter(m => !selectedMovies.includes(m)));
+                    if(recs.length < 2) recs = shuffleArray(moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title));
                     recomendaciones = `
                         <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
                             <li><b>${recs[0]}:</b> Acción imparable y adrenalina al máximo nivel.</li>
                             <li><b>${recs[1]}:</b> Una trama intensa que no te dará un solo respiro.</li>
                         </ul>`;
                 } else {
-                    perfil = "Tienes un paladar versátil: disfrutas de buenas historias, ya sea en el drama, la ciencia ficción o la comedia.";
-                    let recs = ["Avatar: Fuego y Cenizas", "Caminos del crimen (Crime 101)", "Sin Piedad (Mercy)", "La caja azul"].filter(m => !selectedMovies.includes(m));
-                    if(recs.length < 2) recs = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title);
+                    perfil = "Veo que tienes un paladar versátil: disfrutas de buenas historias en cualquier género.";
+                    let recs = shuffleArray(["Avatar: Fuego y Cenizas", "Caminos del crimen (Crime 101)", "Sin Piedad (Mercy)", "La caja azul"].filter(m => !selectedMovies.includes(m)));
+                    if(recs.length < 2) recs = shuffleArray(moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title));
                     recomendaciones = `
                         <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
                             <li><b>${recs[0]}:</b> Una historia atrapante con un desarrollo espectacular.</li>
-                            <li><b>${recs[1]}:</b> Una trama inmersiva que definitivamente encajará en tus gustos.</li>
+                            <li><b>${recs[1]}:</b> Una trama inmersiva que definitivamente te gustará.</li>
                         </ul>`;
                 }
 
                 // Generar mensaje de películas faltantes para el modo offline
                 let mensajeFaltantes = faltantes > 0 
                     ? `<div class="mt-6 p-3 bg-yellow-900/40 border border-yellow-600/50 rounded-lg text-yellow-300 text-center font-bold">
-                        <i class="fa-solid fa-bell mr-2 animate-pulse"></i> ¡Aún te faltan ${faltantes} películas para completar tus 6 opciones!
+                        <i class="fa-solid fa-bell mr-2 animate-pulse"></i> ¡Te recuerdo que aún te faltan ${faltantes} películas para completar tus 6 opciones!
                        </div>` 
                     : `<div class="mt-6 p-3 bg-green-900/40 border border-green-600/50 rounded-lg text-green-300 text-center font-bold">
                         <i class="fa-solid fa-check-circle mr-2"></i> ¡Excelente! Has completado tus 6 selecciones.
@@ -371,7 +385,7 @@
                 <div class="bg-indigo-900/30 p-6 rounded-xl border border-indigo-500/50 relative overflow-hidden mb-4">
                     <div class="absolute top-0 right-0 bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded-bl-lg">IA DE RESPALDO</div>
                     <p class="text-indigo-200 text-lg font-semibold mb-2">${perfil}</p>
-                    <p class="text-white font-bold mt-4 border-t border-indigo-500/30 pt-4">🍿 Te recomendamos ver:</p>
+                    <p class="text-white font-bold mt-4 border-t border-indigo-500/30 pt-4">🍿 Te recomiendo ver:</p>
                     ${recomendaciones}
                     ${mensajeFaltantes}
                 </div>`;
