@@ -9,26 +9,6 @@
     <!-- FontAwesome para íconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Exponer Firebase al entorno global para que el script de abajo lo pueda usar
-        window.firebaseModules = {
-            initializeApp,
-            getAuth,
-            signInAnonymously,
-            onAuthStateChanged,
-            signInWithCustomToken,
-            getFirestore,
-            collection,
-            addDoc,
-            serverTimestamp
-        };
-    </script>
-
     <style>
         /* Paleta de colores personalizada de cine */
         body {
@@ -94,16 +74,15 @@
         }
     </style>
 </head>
-<!-- Añadí padding-bottom (pb-24) para que la barra flotante no tape el contenido final -->
 <body class="font-sans antialiased min-h-screen flex flex-col pb-24">
 
     <!-- Marquesina Superior -->
     <div class="marquee-container">
         <div class="marquee-content">
-            <span>🎬 PRÓXIMOS ESTRENOS 2025 - 2026 🎬</span>
+            <span>🎬 ESTRENOS FINES 2025 Y RECIENTES DEL 2026 🎬</span>
             <span>🍿 PREPÁRATE PARA LA ACCIÓN, EL TERROR Y LA COMEDIA 🍿</span>
             <span>⭐ LAS MEJORES PELÍCULAS EN CINES Y STREAMING ⭐</span>
-            <span>🎬 PRÓXIMOS ESTRENOS 2025 - 2026 🎬</span>
+            <span>🎬 ESTRENOS FINES 2025 Y RECIENTES DEL 2026 🎬</span>
             <span>🍿 PREPÁRATE PARA LA ACCIÓN, EL TERROR Y LA COMEDIA 🍿</span>
         </div>
     </div>
@@ -129,7 +108,6 @@
 
     <!-- Contenedor Principal del Catálogo -->
     <main class="flex-grow container mx-auto px-4 pb-16">
-        <!-- El grid se llenará mediante JavaScript -->
         <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             <!-- Las tarjetas de películas se insertarán aquí -->
         </div>
@@ -147,19 +125,16 @@
                 <div>
                     Películas seleccionadas: <span id="counter" class="text-red-500 text-2xl font-black mx-2">0</span> <span class="text-gray-400">/ 6</span>
                 </div>
-                <!-- Boton AI para desktop -->
                 <button id="btn-ai" class="hidden sm:flex bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-sm font-bold py-2 px-4 rounded-full transition-all duration-300 shadow-lg items-center border border-purple-400">
                     <span id="btn-ai-text">✨ Asistente IA</span>
                 </button>
             </div>
             <div class="flex gap-2">
-                <!-- Boton AI para movil (visible solo en movil) -->
                 <button id="btn-ai-mobile" class="sm:hidden bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-sm font-bold py-3 px-4 rounded-full transition-all duration-300 shadow-lg flex items-center border border-purple-400">
                     ✨ IA
                 </button>
                 <button id="btn-submit" disabled class="bg-gray-600 text-gray-400 font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-lg flex items-center">
                     <span id="btn-submit-text"><i class="fa-solid fa-paper-plane mr-2"></i> Enviar mis selecciones</span>
-                    <!-- Spinner de carga oculto por defecto -->
                     <i id="btn-spinner" class="fa-solid fa-spinner fa-spin ml-2 hidden"></i>
                 </button>
             </div>
@@ -183,9 +158,7 @@
                     <i class="fa-solid fa-circle-notch fa-spin text-4xl text-purple-500 mb-4"></i>
                     <p class="text-gray-300 animate-pulse text-center mt-4 font-semibold" id="ai-loading-text">Analizando tus gustos cinéfilos...</p>
                 </div>
-                <div id="ai-result" class="text-gray-200 text-lg leading-relaxed space-y-4">
-                    <!-- Contenido IA -->
-                </div>
+                <div id="ai-result" class="text-gray-200 text-lg leading-relaxed space-y-4"></div>
             </div>
             <div class="p-4 bg-gray-900/50 border-t border-gray-700 text-center text-sm text-gray-500">
                 Potenciado por Gemini API ✨
@@ -193,32 +166,36 @@
         </div>
     </div>
 
-    <!-- Lógica JavaScript para cargar los datos del PDF y Firebase -->
+    <!-- Lógica JavaScript para cargar los datos y Enviar a Google Sheets -->
     <script>
-        // Array de datos extraídos directamente de tu documento PDF
+        // --- 🔴 IMPORTANTE: COLOCA TU URL DE GOOGLE APPS SCRIPT AQUÍ ---
+        // Pega aquí la URL de la "Aplicación web" que generaste en el Paso 3.
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpsxlzzzlGk3rpCxEyk7jNd0xjzagdUFSFNI4pPV5BaaK1GQlt68EoMVK3nmQ_9Iux_A/exec"; 
+
+        // Array de datos actualizados con los nuevos trailers
         const moviesData = [
             { title: "Scream 7", synopsis: "Sidney Prescott y los sobrevivientes de Woodsboro se enfrentan a un nuevo y sádico asesino detrás de la máscara de Ghostface.", genre: "Terror, Comedia", category: "Adolescentes y adultos", release: "27/Feb/2026", platform: "Mundial", youtubeId: "bK-Sam8baFU" },
             { title: "Avatar: Fuego y Cenizas", synopsis: "Jake Sully y Neytiri se enfrentan a una nueva y agresiva tribu Na'vi, el \"Pueblo de las Cenizas\", explorando zonas oscuras de Pandora.", genre: "Ciencia Ficción, Aventura", category: "Adolescentes y adultos", release: "18/Dic/2025", platform: "Perú", youtubeId: "Ma1x7ikpid8" },
             { title: "Sin Piedad (Mercy)", synopsis: "En un futuro donde los crímenes capitales aumentan, un detective acusado de asesinato debe probar su inocencia antes de que se acabe el tiempo.", genre: "Ciencia Ficción, Acción", category: "Adolescentes y adultos", release: "22/Ene/2026", platform: "Mundial", youtubeId: "HpAhIQ613OE" },
-            { title: "Anaconda", synopsis: "Un grupo de cineastas amateurs en la selva amazónica se encuentra con una serpiente gigante en una historia llena de comedia y caos.", genre: "Comedia, Aventura", category: "Adolescentes y adultos", release: "25/Dic/2025", platform: "Mundial", youtubeId: "i2JNTRCDhzU" },
+            { title: "Anaconda", synopsis: "Un grupo de cineastas amateurs en la selva amazónica se encuentra con una serpiente gigante en una historia llena de comedia y caos.", genre: "Comedia, Aventura", category: "Adolescentes y adultos", release: "25/Dic/2025", platform: "Mundial", youtubeId: "Wh-d_zia8DY" },
             { title: "Ídolos", synopsis: "Un joven piloto busca alcanzar la cima en el peligroso mundo de las carreras de motos, enfrentando rivalidades y dramas personales.", genre: "Acción, Drama", category: "Adolescentes y adultos", release: "23/Ene/2026", platform: "Mundial", youtubeId: "SyB6LKFvjro" },
             { title: "Merv", synopsis: "Una expareja debe reunirse y viajar juntos para intentar animar a su perro deprimido tras la separación.", genre: "Comedia, Romance", category: "Adolescentes y adultos", release: "10/Dic/2025", platform: "Amazon / Prime", youtubeId: "eUOJZSIKxT4" },
             { title: "Tostadora (Toaster)", synopsis: "Las divertidas situaciones que surgen cuando una tostadora aparentemente defectuosa comienza a alterar la vida de sus dueños.", genre: "Comedia", category: "Adolescentes y adultos", release: "15/Abr/2026", platform: "Netflix", youtubeId: "Mnzo9dx2D8s" },
             { title: "Apex", synopsis: "Un piloto retirado de la Fórmula 1 regresa a la pista para competir junto a un joven novato en el equipo APXGP.", genre: "Acción, Drama", category: "Adolescentes y adultos", release: "24/Abr/2026", platform: "Mundial", youtubeId: "Mb491Os4zFc" },
             { title: "Infierno bajo cero (Ice Skater)", synopsis: "Un accidente en un lago congelado se convierte en una lucha desesperada por sobrevivir al frío extremo y la falta de oxígeno.", genre: "Acción, Suspenso", category: "Adolescentes y adultos", release: "24/Feb/2026", platform: "Mundial", youtubeId: "yOFZdp58qOU" },
-            { title: "¡Ayuda! (Send Help)", synopsis: "Una expedición termina en pesadilla cuando los sobrevivientes quedan varados y acechados por algo desconocido en una isla.", genre: "Terror", category: "Adultos", release: "30/Ene/2026", platform: "EE.UU.", youtubeId: "pS6mK_o-M2A" },
+            { title: "¡Ayuda! (Send Help)", synopsis: "Una expedición termina en pesadilla cuando los sobrevivientes quedan varados y acechados por algo desconocido en una isla.", genre: "Terror", category: "Adultos", release: "30/Ene/2026", platform: "EE.UU.", youtubeId: "_a5pAmNRglU" },
             { title: "Caminos del crimen (Crime 101)", synopsis: "Un detective de la policía sigue el rastro de un ladrón de joyas de alto nivel mientras el FBI sospecha de cárteles internacionales.", genre: "Drama, Acción", category: "Adultos", release: "13/Feb/2026", platform: "EE.UU.", youtubeId: "2fAZHGXUvjs" },
-            { title: "Lindas y Letales", synopsis: "Un grupo de jóvenes asesinas entrenadas utiliza sus habilidades letales para infiltrarse en la alta sociedad.", genre: "Acción, Comedia", category: "Adultos", release: "25/Mar/2026", platform: "Amazon / Prime", youtubeId: "r0fN_x5-07o" },
-            { title: "Venganza", synopsis: "Un exagente especial busca justicia letal contra el sindicato criminal que destruyó a su familia.", genre: "Acción", category: "Adultos", release: "26/Feb/2026", platform: "Mundial", youtubeId: "0phuW9vS6Zc" },
-            { title: "Mexicali: Tierra sin ley", synopsis: "Un tenso thriller sobre el crimen organizado y la lucha por sobrevivir en la dura frontera de México.", genre: "Acción, Drama", category: "Adultos", release: "13/Mar/2026", platform: "Mundial", youtubeId: "N3M_1tXfU_A" },
-            { title: "El sonido de la muerte", synopsis: "Un grupo de estudiantes descubre un silbato antiguo azteca que invoca fuerzas demoníacas al ser tocado.", genre: "Horror", category: "Adultos", release: "06/Feb/2026", platform: "EE.UU.", youtubeId: "T8q5kRMU_oO" },
-            { title: "180", synopsis: "Un intenso relato donde un grupo de personas debe tomar decisiones de vida o muerte que cambiarán sus destinos en cuestión de minutos.", genre: "Drama, Acción", category: "Adultos", release: "17/Abr/2026", platform: "Netflix", youtubeId: "9L7vL3l8v9M" },
+            { title: "Lindas y Letales", synopsis: "Un grupo de jóvenes asesinas entrenadas utiliza sus habilidades letales para infiltrarse en la alta sociedad.", genre: "Acción, Comedia", category: "Adultos", release: "25/Mar/2026", platform: "Amazon / Prime", youtubeId: "1YReCsYL_DU" },
+            { title: "Venganza", synopsis: "Un exagente especial busca justicia letal contra el sindicato criminal que destruyó a su familia.", genre: "Acción", category: "Adultos", release: "26/Feb/2026", platform: "Mundial", youtubeId: "GqRYXZvQx48" },
+            { title: "Mexicali: Tierra sin ley", synopsis: "Un tenso thriller sobre el crimen organizado y la lucha por sobrevivir en la dura frontera de México.", genre: "Acción, Drama", category: "Adultos", release: "13/Mar/2026", platform: "Mundial", youtubeId: "E24PRA3_Ml8" },
+            { title: "El sonido de la muerte", synopsis: "Un grupo de estudiantes descubre un silbato antiguo azteca que invoca fuerzas demoníacas al ser tocado.", genre: "Horror", category: "Adultos", release: "06/Feb/2026", platform: "EE.UU.", youtubeId: "jEiKN95u3fA" },
+            { title: "180", synopsis: "Un intenso relato donde un grupo de personas debe tomar decisiones de vida o muerte que cambiarán sus destinos en cuestión de minutos.", genre: "Drama, Acción", category: "Adultos", release: "17/Abr/2026", platform: "Netflix", youtubeId: "7sE6NUdpB1Q" },
             { title: "911: Llamada Infernal (Bodycam)", synopsis: "Eventos aterradores grabados desde la cámara corporal de un policía que responde a una llamada de emergencia perturbadora.", genre: "Horror", category: "Adultos", release: "13/Mar/2026", platform: "EE.UU.", youtubeId: "C2AvumFjKH4" },
             { title: "Sniper: No Nation", synopsis: "Un francotirador de élite queda abandonado a su suerte y debe desentrañar una conspiración global sin la ayuda de su gobierno.", genre: "Acción", category: "Adultos", release: "07/Abr/2026", platform: "Mundial", youtubeId: "wb49-oV0F78" },
             { title: "La caja azul", synopsis: "Pablo, un millonario solitario, conoce a Lara en una app de citas. Lo que empieza como algo íntimo, se vuelve un juego de manipulación y misterio.", genre: "Drama, Romance (Suspenso)", category: "Adultos", release: "17/Abr/2026", platform: "Amazon / Prime", youtubeId: "sJNhJxmrwfs" },
             { title: "Familia a la deriva", synopsis: "Las caóticas vacaciones de una familia disfuncional que accidentalmente se pierde en alta mar.", genre: "Comedia", category: "Familiar", release: "22/Ene/2026", platform: "Mundial", youtubeId: "8lHiU3wXxp4" },
-            { title: "Tom y Jerry: La brújula mágica", synopsis: "El clásico dúo se embarca en una disparatada aventura para encontrar un artefacto mágico antes de que caiga en malas manos.", genre: "Comedia, Aventura", category: "Familiar", release: "15/Ene/2026", platform: "Mundial", youtubeId: "kP9TFCWaQT4" },
-            { title: "Hoppers: Operación castor", synopsis: "Una científica transfiere su conciencia a un castor robótico para infiltrarse en la naturaleza y entender a los animales.", genre: "Aventura, Comedia", category: "Familiar", release: "06/Mar/2026", platform: "Mundial", youtubeId: "XxJLgC8rloA" }
+            { title: "Tom y Jerry: La brújula mágica", synopsis: "El clásico dúo se embarca en una disparatada aventura para encontrar un artefacto mágico antes de que caiga en malas manos.", genre: "Comedia, Aventura", category: "Familiar", release: "15/Ene/2026", platform: "Mundial", youtubeId: "TSQCxd904qQ" },
+            { title: "Hoppers: Operación castor", synopsis: "Una científica transfiere su conciencia a un castor robótico para infiltrarse en la naturaleza y entender a los animales.", genre: "Aventura, Comedia", category: "Familiar", release: "06/Mar/2026", platform: "Mundial", youtubeId: "9P_3xFt3HBk" }
         ];
 
         // Referencias al DOM
@@ -246,84 +223,20 @@
         let selectedMovies = [];
         let hasVoted = false;
 
-        // Variables de Firebase (se inicializarán cuando el módulo esté listo)
-        let db;
-        let auth;
-        let currentUserId = null;
-        let appId = typeof __app_id !== 'undefined' ? __app_id : 'cartelera-tec-nvm';
-
         // Verificar si el visitante ya votó previamente (usando LocalStorage)
         if (localStorage.getItem('userVotes_TECNVM')) {
             hasVoted = true;
             selectedMovies = JSON.parse(localStorage.getItem('userVotes_TECNVM'));
         }
 
-        // Inicializar Firebase
-        function initFirebase() {
-            // Esperar a que el script de tipo 'module' exponga los objetos en window
-            if (!window.firebaseModules) {
-                setTimeout(initFirebase, 100);
-                return;
-            }
-
-            const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore } = window.firebaseModules;
-
-            // Configuración de Firebase provista por el entorno
-            let firebaseConfig;
-            try {
-                firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-                if (Object.keys(firebaseConfig).length === 0) {
-                     console.warn("Configuración de Firebase no encontrada en este entorno.");
-                     return; // Si no hay config, no inicializamos Firebase
-                }
-            } catch(e) {
-                console.error("Error parseando configuración de Firebase", e);
-                return;
-            }
-
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-
-            // Autenticación requerida antes de cualquier escritura en Firestore
-            const initAuth = async () => {
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Error en autenticación:", error);
-                }
-            };
-
-            initAuth();
-
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    currentUserId = user.uid;
-                    console.log("Usuario autenticado para votar:", currentUserId);
-                } else {
-                    currentUserId = null;
-                }
-            });
-        }
-
-        // Iniciar Firebase si es posible
-        initFirebase();
-
         // Función para renderizar el catálogo
         function renderCatalog() {
-            grid.innerHTML = ''; // Limpiar grid por si se vuelve a renderizar
+            grid.innerHTML = '';
 
             moviesData.forEach((movie) => {
-                // Utilizando el ID de Youtube exacto provisto en la base de datos
                 const youtubeEmbedUrl = `https://www.youtube.com/embed/${movie.youtubeId}`;
-                
                 const isSelected = selectedMovies.includes(movie.title);
                 
-                // Si ya votó y no es una de las seleccionadas, atenuar la tarjeta
                 const disableClass = (hasVoted && !isSelected) ? 'disabled-card' : '';
                 const selectedClass = isSelected ? 'ring-4 ring-red-600 transform -translate-y-2' : '';
 
@@ -331,7 +244,6 @@
                 card.className = `movie-card rounded-xl overflow-hidden flex flex-col transition-all duration-300 relative ${disableClass} ${selectedClass}`;
                 
                 card.innerHTML = `
-                    <!-- Casilla de selección superpuesta -->
                     <div class="absolute top-4 right-4 z-10 ${hasVoted && !isSelected ? 'hidden' : ''}">
                         <label class="flex items-center cursor-pointer">
                             <div class="relative">
@@ -343,23 +255,13 @@
                         </label>
                     </div>
 
-                    <!-- Video Embed -->
                     <div class="relative w-full pt-[56.25%] bg-black pointer-events-auto">
-                        <iframe 
-                            class="absolute top-0 left-0 w-full h-full" 
-                            src="${youtubeEmbedUrl}" 
-                            title="Trailer de ${movie.title}" 
-                            frameborder="0" 
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowfullscreen>
-                        </iframe>
+                        <iframe class="absolute top-0 left-0 w-full h-full" src="${youtubeEmbedUrl}" title="Trailer de ${movie.title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                     </div>
                     
-                    <!-- Contenido -->
                     <div class="p-5 flex flex-col flex-grow">
                         <h2 class="text-2xl font-bold text-white mb-2 leading-tight pr-8">${movie.title}</h2>
                         
-                        <!-- Metadatos -->
                         <div class="flex flex-wrap gap-2 mb-4">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-900/50 text-red-300 border border-red-800">
                                 <i class="fa-solid fa-masks-theater mr-1"></i> ${movie.genre}
@@ -369,12 +271,8 @@
                             </span>
                         </div>
 
-                        <!-- Sinopsis -->
-                        <p class="text-gray-400 text-sm mb-4 flex-grow line-clamp-3" title="${movie.synopsis}">
-                            ${movie.synopsis}
-                        </p>
+                        <p class="text-gray-400 text-sm mb-4 flex-grow line-clamp-3" title="${movie.synopsis}">${movie.synopsis}</p>
 
-                        <!-- Fechas y Plataforma -->
                         <div class="mt-auto pt-4 border-t border-gray-700 flex justify-between items-center text-sm text-gray-300">
                             <div class="flex items-center">
                                 <i class="fa-regular fa-calendar text-yellow-500 mr-2"></i>
@@ -387,17 +285,15 @@
                         </div>
                     </div>
                 `;
-                
                 grid.appendChild(card);
             });
 
-            updateUI(); // Llamar estado UI inicial
+            updateUI();
         }
 
-        // Lógica de clics en las casillas (Event Delegation)
         grid.addEventListener('change', (e) => {
             if (e.target.classList.contains('movie-checkbox')) {
-                if (hasVoted) return; // Bloqueo de seguridad
+                if (hasVoted) return;
 
                 const title = e.target.value;
                 const isChecked = e.target.checked;
@@ -407,19 +303,17 @@
 
                 if (isChecked) {
                     if (selectedMovies.length >= MAX_SELECTION) {
-                        e.target.checked = false; // Deshacer selección si ya hay 6
+                        e.target.checked = false;
                         alert("¡Ya alcanzaste el máximo! Deselecciona una película si quieres elegir otra.");
                         return;
                     }
                     selectedMovies.push(title);
-                    // Aplicar estilos de "Tarjeta Seleccionada"
                     card.classList.add('ring-4', 'ring-red-600', 'transform', '-translate-y-2');
                     boxIcon.classList.remove('bg-gray-900', 'border-gray-400');
                     boxIcon.classList.add('bg-red-600', 'border-red-600');
                     checkIcon.classList.remove('hidden');
                 } else {
                     selectedMovies = selectedMovies.filter(t => t !== title);
-                    // Remover estilos
                     card.classList.remove('ring-4', 'ring-red-600', 'transform', '-translate-y-2');
                     boxIcon.classList.add('bg-gray-900', 'border-gray-400');
                     boxIcon.classList.remove('bg-red-600', 'border-red-600');
@@ -430,11 +324,9 @@
             }
         });
 
-        // Actualizar la interfaz (Barra, botón y estado de instrucciones)
         function updateUI() {
             counterEl.textContent = selectedMovies.length;
 
-            // Actualizar texto del botón IA según contexto
             if (selectedMovies.length === 0) {
                 btnAiText.innerHTML = "✨ ¿Por dónde empiezo?";
             } else if (selectedMovies.length < MAX_SELECTION) {
@@ -444,7 +336,6 @@
             }
 
             if (hasVoted) {
-                // Si ya votó, fijar la barra en verde y cambiar instrucciones
                 selectionBar.classList.remove('translate-y-full');
                 counterEl.textContent = "6";
                 btnSubmitText.innerHTML = '<i class="fa-solid fa-circle-check mr-2"></i> Voto Registrado';
@@ -462,20 +353,17 @@
                 return;
             }
 
-            // Subir barra animada si se selecciona al menos 1
             if (selectedMovies.length > 0) {
                 selectionBar.classList.remove('translate-y-full');
             } else {
                 selectionBar.classList.add('translate-y-full');
             }
 
-            // Habilitar / Deshabilitar botón de enviar
             if (selectedMovies.length === MAX_SELECTION) {
                 btnSubmit.disabled = false;
                 btnSubmit.classList.remove('bg-gray-600', 'text-gray-400', 'cursor-not-allowed');
                 btnSubmit.classList.add('bg-red-600', 'text-white', 'hover:bg-red-700', 'cursor-pointer');
                 
-                // Atenuar visualmente las que no están seleccionadas para llamar la atención a las elegidas
                 document.querySelectorAll('.movie-checkbox:not(:checked)').forEach(cb => {
                     cb.closest('.movie-card').classList.add('opacity-50');
                 });
@@ -484,70 +372,64 @@
                 btnSubmit.classList.add('bg-gray-600', 'text-gray-400', 'cursor-not-allowed');
                 btnSubmit.classList.remove('bg-red-600', 'text-white', 'hover:bg-red-700', 'cursor-pointer');
                 
-                // Restaurar visibilidad si desmarca una
                 document.querySelectorAll('.movie-card').forEach(card => {
                     card.classList.remove('opacity-50');
                 });
             }
         }
 
-        // Evento al dar clic en Enviar
+        // --- LÓGICA PARA ENVIAR VOTACIÓN A GOOGLE SHEETS ---
         btnSubmit.addEventListener('click', async () => {
             if (selectedMovies.length === MAX_SELECTION && !hasVoted) {
                 
-                // Mostrar estado de carga
                 btnSubmit.disabled = true;
-                btnSubmitText.textContent = "Enviando...";
+                btnSubmitText.textContent = "Enviando a base de datos...";
                 btnSpinner.classList.remove('hidden');
 
                 try {
-                    // Obtener la IP pública del usuario mediante una API gratuita
+                    // 1. Obtener IP pública
                     let userIP = "Desconocida";
                     try {
                         const ipResponse = await fetch('https://api.ipify.org?format=json');
                         const ipData = await ipResponse.json();
                         userIP = ipData.ip;
                     } catch (ipError) {
-                        console.warn("No se pudo obtener la IP del usuario.", ipError);
+                        console.warn("No se pudo obtener la IP.");
                     }
 
-                    // Si Firebase está configurado y el usuario autenticado, guardar en Firestore
-                    if (db && window.firebaseModules && currentUserId) {
-                        const { collection, addDoc, serverTimestamp } = window.firebaseModules;
-                        
-                        // Crear el documento de voto en la colección pública (para que puedas leerlo luego)
-                        // Regla estricta: artifacts/{appId}/public/data/{collectionName}
-                        const votesRef = collection(db, 'artifacts', appId, 'public', 'data', 'movie_votes');
-                        
-                        await addDoc(votesRef, {
-                            userId: currentUserId,
-                            movies: selectedMovies,
-                            timestamp: serverTimestamp(),
-                            userAgent: navigator.userAgent, // Para tener contexto del dispositivo (opcional)
-                            ipAddress: userIP // Aquí registramos la IP capturada
-                        });
-                        console.log("Voto guardado en Firestore exitosamente");
+                    // 2. Preparar los datos en formato Formulario para Google Apps Script
+                    const formData = new FormData();
+                    formData.append("ip", userIP);
+                    formData.append("userAgent", navigator.userAgent);
+                    formData.append("pelicula1", selectedMovies[0]);
+                    formData.append("pelicula2", selectedMovies[1]);
+                    formData.append("pelicula3", selectedMovies[2]);
+                    formData.append("pelicula4", selectedMovies[3]);
+                    formData.append("pelicula5", selectedMovies[4]);
+                    formData.append("pelicula6", selectedMovies[5]);
+
+                    // 3. Enviar datos silenciosamente a Google Sheets
+                    if (GOOGLE_SCRIPT_URL === "TU_URL_DE_GOOGLE_AQUI") {
+                        console.warn("Aviso: No has puesto tu URL de Google Apps Script. El voto se guardó en tu navegador, pero no en tu Hoja de Cálculo.");
                     } else {
-                        console.warn("Simulando envío. Firebase no está disponible o el usuario no está autenticado en este entorno de previsualización.");
-                        // Simulamos un retraso de red
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        // mode 'no-cors' es esencial aquí para evitar bloqueos de seguridad del navegador al mandar datos a Google
+                        await fetch(GOOGLE_SCRIPT_URL, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            body: formData
+                        });
                     }
 
-                    // Guardar permanentemente en el navegador localmente también (doble protección)
+                    // 4. Guardar en navegador localmente y actualizar diseño final
                     localStorage.setItem('userVotes_TECNVM', JSON.stringify(selectedMovies));
                     hasVoted = true;
-                    
-                    // Re-renderizar el catálogo para que se aplique el diseño final (bloqueado)
                     renderCatalog();
-                    
-                    // Subir al inicio suavemente para que lean el mensaje de agradecimiento
                     window.scrollTo({ top: 0, behavior: 'smooth' });
 
                 } catch (error) {
-                    console.error("Error al guardar el voto:", error);
-                    alert("Hubo un problema al enviar tu selección. Por favor, intenta de nuevo.");
+                    console.error("Error al procesar el voto:", error);
+                    alert("Hubo un problema al enviar tu selección. Por favor, asegúrate de tener conexión y vuelve a intentar.");
                     
-                    // Restaurar botón
                     btnSubmit.disabled = false;
                     btnSubmitText.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> Enviar mis selecciones';
                     btnSpinner.classList.add('hidden');
@@ -556,7 +438,7 @@
         });
 
         // --- INTEGRACIÓN GEMINI API ---
-        const apiKey = ""; // Se inyectará en tiempo de ejecución por el entorno
+        const apiKey = ""; 
         
         async function fetchGeminiWithRetry(prompt, systemPrompt, retries = 5) {
             const delays = [1000, 2000, 4000, 8000, 16000];
@@ -585,16 +467,13 @@
         }
 
         async function handleAiInteraction() {
-            // Mostrar modal
             aiModal.classList.remove('hidden');
             aiModal.classList.add('flex');
-            // Animar entrada
             setTimeout(() => {
                 aiModal.classList.remove('opacity-0');
                 aiModalContent.classList.remove('scale-95');
             }, 10);
 
-            // Preparar UI
             aiResult.innerHTML = "";
             aiLoading.classList.remove('hidden');
             
@@ -622,7 +501,6 @@
                 const response = await fetchGeminiWithRetry(userPrompt, systemPrompt);
                 aiLoading.classList.add('hidden');
                 
-                // Formatear respuesta (quitar delimitadores markdown si la IA los incluye accidentalmente)
                 let cleanResponse = response.replace(/```html/g, '').replace(/```/g, '');
                 aiResult.innerHTML = cleanResponse;
             } catch (error) {
@@ -631,7 +509,6 @@
             }
         }
 
-        // Eventos del Modal IA
         btnAi.addEventListener('click', handleAiInteraction);
         btnAiMobile.addEventListener('click', handleAiInteraction);
         
@@ -644,12 +521,10 @@
             }, 300);
         });
 
-        // Cerrar modal al hacer clic fuera del contenido
         aiModal.addEventListener('click', (e) => {
             if (e.target === aiModal) btnCloseAi.click();
         });
 
-        // Cargar todo al inicio
         document.addEventListener('DOMContentLoaded', renderCatalog);
     </script>
 </body>
