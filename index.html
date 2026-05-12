@@ -79,7 +79,7 @@
         // ==========================================
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpsxlzzzlGk3rpCxEyk7jNd0xjzagdUFSFNI4pPV5BaaK1GQlt68EoMVK3nmQ_9Iux_A/exec"; 
         
-        // 🔴 PEGA AQUÍ TU LLAVE PERSONAL (La que empieza con AIzaSyClc9...)
+        // 🔴 PEGA AQUÍ TU LLAVE PERSONAL
         const apiKey = "AIzaSyClc9aUg3vRcbJYhqc9NLtQlmpGclH7hMI";
 
         // ==========================================
@@ -220,7 +220,7 @@
         };
 
         // ==========================================
-        // SISTEMA IA: AUTO-DETECT + PLAN B (OFFLINE)
+        // SISTEMA IA: AUTO-DETECT + PLAN B + REGLA DE MÍNIMOS
         // ==========================================
         async function askAI() {
             const resBox = document.getElementById('ai-result');
@@ -233,39 +233,60 @@
             resBox.innerHTML = "";
             loader.classList.remove('hidden');
 
+            // REGLA 1: Exigir al menos 2 películas para analizar el perfil
+            if (selectedMovies.length < 2) {
+                loader.classList.add('hidden');
+                resBox.innerHTML = `
+                <div class="text-center p-8">
+                    <i class="fa-solid fa-magnifying-glass-chart text-6xl text-indigo-400 mb-5 animate-bounce"></i>
+                    <h4 class="text-2xl font-black text-white mb-3">¡Necesito más pistas! 🕵️‍♂️</h4>
+                    <p class="text-gray-300 mb-8 text-lg">Por favor, selecciona al menos <strong>2 o 3 películas</strong> de la cartelera para poder evaluar correctamente tu perfil cinéfilo.</p>
+                    <button onclick="document.getElementById('ai-modal').classList.add('hidden'); document.getElementById('ai-modal').classList.remove('flex');" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-10 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 text-lg">
+                        <i class="fa-solid fa-hand-pointer mr-2"></i> Ir a seleccionar
+                    </button>
+                </div>`;
+                return;
+            }
+
             if (!apiKey || apiKey.includes("AQUI")) {
                 loader.classList.add('hidden');
                 resBox.innerHTML = "Configura tu API Key en el código para activar la IA.";
                 return;
             }
 
-            const systemPrompt = "Eres un experto crítico de cine. Analiza las películas elegidas y define la personalidad del usuario. Usa HTML (<b>, <br>, <ul>, <li>). Sé breve.";
-            const userPrompt = selectedMovies.length === 0 
-                ? "¿Qué películas recomiendas para el 2025?" 
-                : `He seleccionado estas 6 películas: ${selectedMovies.join(', ')}. ¿Qué dicen de mis gustos?`;
+            // INSTRUCCIONES ESTRICTAS PARA EVITAR EL "FLORO"
+            const systemPrompt = "Eres un recomendador de cine experto y directo. CERO palabrería. Tu objetivo es: 1) Resumir en UNA ORACIÓN el gusto del usuario según sus películas elegidas. 2) Recomendarle directamente 2 PELÍCULAS REALES (clásicos recientes o estrenos) que DEBE ver, explicando por qué en una línea cada una. Usa HTML (<b>, <br>, <ul>, <li>).";
+            
+            // REGLA 2: Calcular cuántas faltan e indicarlo en el Prompt
+            let faltantes = 6 - selectedMovies.length;
+            let userPrompt = "";
+
+            if (faltantes > 0) {
+                userPrompt = `He seleccionado estas ${selectedMovies.length} películas: ${selectedMovies.join(', ')}. Dime mi estilo en una línea y recomiéndame 2 películas reales que me van a encantar. Al final, añade un bloque HTML llamativo (quizás un div con color de fondo amarillo o naranja) recordando amigablemente que me faltan ${faltantes} películas de la cartelera para completar mis 6 selecciones y poder enviar mi voto.`;
+            } else {
+                userPrompt = `He completado mis 6 selecciones: ${selectedMovies.join(', ')}. Dime mi estilo en una línea y recomiéndame 2 películas reales que me van a encantar. Felicítame por completar mi selección.`;
+            }
 
             try {
                 if(loadText) loadText.textContent = "Buscando modelos compatibles...";
 
-                // 1. Detectar el modelo correcto que Google permite para esta llave
+                // 1. Detectar el modelo
                 const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
                 const modelsData = await modelsRes.json();
                 
                 if (!modelsRes.ok) throw new Error(modelsData.error?.message || "No se pudo listar modelos.");
 
-                // Filtrar para encontrar un modelo de generación de texto válido
                 const validModels = modelsData.models.filter(m => 
                     m.supportedGenerationMethods && 
                     m.supportedGenerationMethods.includes("generateContent") && 
                     m.name.includes("gemini")
                 );
 
-                if (validModels.length === 0) throw new Error("No hay modelos Gemini disponibles para esta cuenta.");
+                if (validModels.length === 0) throw new Error("No hay modelos disponibles.");
 
-                // Usamos el primer modelo de la lista que nos aprueba Google (suele ser gemini-1.5-flash)
                 const modeloAprobado = validModels[0].name;
 
-                if(loadText) loadText.textContent = "Generando tu perfil cinéfilo...";
+                if(loadText) loadText.textContent = "Generando recomendaciones directas...";
 
                 // 2. Hacer la consulta con el modelo correcto
                 const url = `https://generativelanguage.googleapis.com/v1beta/${modeloAprobado}:generateContent?key=${apiKey}`;
@@ -290,34 +311,60 @@
 
             } catch (err) {
                 // ==========================================
-                // PLAN B: IA DE RESPALDO (OFFLINE)
+                // PLAN B: IA DE RESPALDO CON RECOMENDACIONES Y CONTADOR
                 // ==========================================
-                // Si la conexión a Google falla por cualquier motivo, esto se activará
-                // automáticamente para que el usuario siempre vea un resultado bonito.
-                
                 loader.classList.add('hidden');
                 
                 let perfil = "";
+                let recomendaciones = "";
                 let pelisStr = selectedMovies.join(', ').toLowerCase();
                 
                 if (pelisStr.includes('scream') || pelisStr.includes('ayuda') || pelisStr.includes('sonido') || pelisStr.includes('911')) {
-                    perfil = "<b>Amante del Suspenso y la Adrenalina 👻</b><br><br>Tienes nervios de acero. Disfrutas el terror, lo sobrenatural y la emoción de estar al borde del asiento. Tus elecciones demuestran que no le temes a la oscuridad.";
+                    perfil = "Tu estilo es adrenalina pura: buscas tensión, terror y misterio al límite.";
+                    recomendaciones = `
+                        <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
+                            <li><b>Hereditary (El legado del diablo):</b> Te volará la cabeza si buscas terror psicológico del bueno.</li>
+                            <li><b>Un lugar en silencio:</b> Tensión constante donde cada sonido puede ser el final.</li>
+                        </ul>`;
                 } else if (pelisStr.includes('tostadora') || pelisStr.includes('familia') || pelisStr.includes('merv') || pelisStr.includes('anaconda')) {
-                    perfil = "<b>Espíritu Relajado y Cómico 😂</b><br><br>Vas al cine a desconectar, reír y pasar un buen rato. Te gustan las situaciones divertidas y las aventuras ligeras. Buscas que el cine sea un escape sin tantas complicaciones.";
+                    perfil = "Buscas relajarte: te gusta el humor, la aventura ligera y pasar un buen rato sin complicaciones.";
+                    recomendaciones = `
+                        <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
+                            <li><b>Jumanji (En la selva):</b> Aventura pura con un toque de comedia excelente.</li>
+                            <li><b>Super Mario Bros. La película:</b> Divertida, colorida y perfecta para desconectar.</li>
+                        </ul>`;
                 } else if (pelisStr.includes('venganza') || pelisStr.includes('apex') || pelisStr.includes('francotirador') || pelisStr.includes('mexicali')) {
-                    perfil = "<b>Fan de la Acción Pura 💥</b><br><br>Para ti, una buena película necesita velocidad, tensión y protagonistas imparables. Te gustan las tramas directas y la resolución de conflictos al límite.";
+                    perfil = "Eres fan de la acción cruda: persecuciones, disparos y protagonistas que no se rinden.";
+                    recomendaciones = `
+                        <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
+                            <li><b>John Wick 4:</b> La obra maestra moderna de la acción y la coreografía de combates.</li>
+                            <li><b>Mad Max: Furia en el camino:</b> Adrenalina vehicular sin pausa de principio a fin.</li>
+                        </ul>`;
                 } else {
-                    perfil = "<b>Cinéfilo Versátil y Equilibrado 🍿</b><br><br>Tus gustos son muy ricos e impredecibles. Eres capaz de disfrutar tanto de la ciencia ficción, como de un drama profundo o una comedia. Tienes un paladar cinematográfico muy completo.";
+                    perfil = "Tienes un paladar versátil: disfrutas de buenas historias, ya sea en el drama, la ciencia ficción o la comedia.";
+                    recomendaciones = `
+                        <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
+                            <li><b>Dune: Parte Dos:</b> Una experiencia visual y narrativa de ciencia ficción espectacular.</li>
+                            <li><b>Todo a la vez en todas partes:</b> Una mezcla loca de acción, comedia y multiversos.</li>
+                        </ul>`;
                 }
 
+                // Generar mensaje de películas faltantes para el modo offline
+                let mensajeFaltantes = faltantes > 0 
+                    ? `<div class="mt-6 p-3 bg-yellow-900/40 border border-yellow-600/50 rounded-lg text-yellow-300 text-center font-bold">
+                        <i class="fa-solid fa-bell mr-2 animate-pulse"></i> ¡Aún te faltan ${faltantes} películas para completar tus 6 opciones!
+                       </div>` 
+                    : `<div class="mt-6 p-3 bg-green-900/40 border border-green-600/50 rounded-lg text-green-300 text-center font-bold">
+                        <i class="fa-solid fa-check-circle mr-2"></i> ¡Excelente! Has completado tus 6 selecciones.
+                       </div>`;
+
                 resBox.innerHTML = `
-                <div class="bg-indigo-900/30 p-5 rounded-xl border border-indigo-500/50 relative overflow-hidden mb-4">
+                <div class="bg-indigo-900/30 p-6 rounded-xl border border-indigo-500/50 relative overflow-hidden mb-4">
                     <div class="absolute top-0 right-0 bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded-bl-lg">IA DE RESPALDO</div>
-                    <p class="text-gray-200 text-lg leading-relaxed">${perfil}</p>
-                </div>
-                <div class="bg-gray-900/50 border border-gray-700 p-3 rounded-lg text-gray-400 text-xs">
-                    <p><b>Diagnóstico de Conexión:</b> Google bloqueó temporalmente la consulta externa. Se activó el perfilador local.</p>
-                    <p class="mt-1 text-[10px] opacity-50">Log: ${err.message}</p>
+                    <p class="text-indigo-200 text-lg font-semibold mb-2">${perfil}</p>
+                    <p class="text-white font-bold mt-4 border-t border-indigo-500/30 pt-4">🍿 Te recomendamos ver:</p>
+                    ${recomendaciones}
+                    ${mensajeFaltantes}
                 </div>`;
             }
         }
