@@ -169,7 +169,6 @@
     <!-- Lógica JavaScript para cargar los datos y Enviar a Google Sheets -->
     <script>
         // --- 🔴 IMPORTANTE: COLOCA TU URL DE GOOGLE APPS SCRIPT AQUÍ ---
-        // Pega aquí la URL de la "Aplicación web" que generaste en el Paso 3.
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpsxlzzzlGk3rpCxEyk7jNd0xjzagdUFSFNI4pPV5BaaK1GQlt68EoMVK3nmQ_9Iux_A/exec"; 
 
         // Array de datos actualizados con los nuevos trailers
@@ -437,8 +436,10 @@
             }
         });
 
-        // --- INTEGRACIÓN GEMINI API ---
-        const apiKey = ""; 
+        // --- 🔴 IMPORTANTE: COLOCA TU API KEY DE GEMINI AQUÍ ---
+        // Para que la IA funcione en tu web pública, necesitas generar una llave gratuita.
+        // Entra a: https://aistudio.google.com/app/apikey -> Crea una -> Pégala aquí abajo.
+        const apiKey = "PON_TU_API_KEY_AQUI"; 
         
         async function fetchGeminiWithRetry(prompt, systemPrompt, retries = 5) {
             const delays = [1000, 2000, 4000, 8000, 16000];
@@ -455,7 +456,10 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                    }
                     const data = await response.json();
                     return data.candidates?.[0]?.content?.parts?.[0]?.text || "Ups, la IA se quedó sin palabras. Intenta de nuevo.";
                 } catch (error) {
@@ -476,6 +480,12 @@
 
             aiResult.innerHTML = "";
             aiLoading.classList.remove('hidden');
+
+            if (apiKey === "PON_TU_API_KEY_AQUI" || apiKey === "") {
+                aiLoading.classList.add('hidden');
+                aiResult.innerHTML = `<div class="text-yellow-400 text-center"><i class="fa-solid fa-key text-3xl mb-2 block"></i>Para que la IA funcione, necesitas colocar tu API Key de Gemini en el código fuente (busca la variable apiKey).</div>`;
+                return;
+            }
             
             const allMoviesJSON = JSON.stringify(moviesData.map(m => ({ title: m.title, genre: m.genre, category: m.category })));
             
@@ -505,7 +515,7 @@
                 aiResult.innerHTML = cleanResponse;
             } catch (error) {
                 aiLoading.classList.add('hidden');
-                aiResult.innerHTML = `<div class="text-red-400 text-center"><i class="fa-solid fa-triangle-exclamation text-3xl mb-2 block"></i>Hubo un error de conexión con la IA. Por favor, intenta más tarde.</div>`;
+                aiResult.innerHTML = `<div class="text-red-400 text-center"><i class="fa-solid fa-triangle-exclamation text-3xl mb-2 block"></i>Hubo un error de conexión con la IA. Detalle: ${error.message}</div>`;
             }
         }
 
