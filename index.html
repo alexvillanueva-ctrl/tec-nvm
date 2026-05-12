@@ -62,7 +62,7 @@
             <div class="p-8 max-h-[70vh] overflow-y-auto">
                 <div id="ai-loading" class="flex flex-col items-center py-10 hidden text-center">
                     <div class="w-16 h-16 border-4 border-t-indigo-500 border-gray-700 rounded-full animate-spin mb-4"></div>
-                    <p class="text-indigo-300 font-medium animate-pulse">Analizando tus preferencias...</p>
+                    <p class="text-indigo-300 font-medium animate-pulse">Autodetectando el mejor modelo de IA disponible...</p>
                 </div>
                 <div id="ai-result" class="text-gray-200 text-lg leading-relaxed space-y-4"></div>
             </div>
@@ -70,10 +70,8 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN: Reemplaza con tus datos
+        // CONFIGURACIÓN: Reemplaza con tus datos reales
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpsxlzzzlGk3rpCxEyk7jNd0xjzagdUFSFNI4pPV5BaaK1GQlt68EoMVK3nmQ_9Iux_A/exec"; 
-        
-        // Pon tu nueva API KEY aquí adentro de las comillas
         const apiKey = "AIzaSyCEUYCVSiimCMzg3X4jKIGWm5AzHwRXPmA";
 
         // LISTA DE PELÍCULAS ORIGINAL
@@ -211,7 +209,7 @@
             }
         };
 
-        // FUNCIÓN DE IA 100% ESTABLE Y DEFINITIVA
+        // --- SISTEMA AUTODETECTOR DE MODELOS ---
         async function askAI() {
             const resBox = document.getElementById('ai-result');
             const loader = document.getElementById('ai-loading');
@@ -233,8 +231,35 @@
                 : `He seleccionado estas 6 películas: ${selectedMovies.join(', ')}. ¿Qué dicen de mis gustos?`;
 
             try {
-                // AQUÍ ESTÁ LA MAGIA QUE TU NAVEGADOR IGNORABA (v1beta y gemini-1.5-flash)
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                // PASO 1: Preguntarle a Google qué modelos tienes habilitados
+                let targetModel = "models/gemini-1.5-flash"; // Nuestro modelo ideal
+                
+                try {
+                    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                    if (listRes.ok) {
+                        const listData = await listRes.json();
+                        const models = listData.models || [];
+                        
+                        // Si Google nos dice que no tienes el modelo ideal, buscamos el primero que sí funcione
+                        const hasFlash = models.some(m => m.name === targetModel);
+                        if (!hasFlash) {
+                            const fallback = models.find(m => 
+                                m.supportedGenerationMethods && 
+                                m.supportedGenerationMethods.includes("generateContent") && 
+                                m.name.includes("gemini")
+                            );
+                            if (fallback) {
+                                targetModel = fallback.name; // Asignamos el modelo que Google sí acepta
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Si falla la búsqueda, continuamos con el modelo por defecto
+                    console.log("No se pudo detectar el modelo, usando el predeterminado.");
+                }
+
+                // PASO 2: Hacer la consulta de IA con el modelo garantizado
+                const url = `https://generativelanguage.googleapis.com/v1beta/${targetModel}:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -255,11 +280,9 @@
                 }
             } catch (err) {
                 loader.classList.add('hidden');
-                
-                // Le cambié el título para que notes cuando realmente cargó el código nuevo
                 resBox.innerHTML = `
                 <div class="bg-red-900/40 border border-red-500 p-4 rounded-xl text-red-200">
-                    <p class="font-bold mb-2">¡NUEVO SISTEMA! Error de Conexión:</p>
+                    <p class="font-bold mb-2">¡SISTEMA AUTODETECT! Error:</p>
                     <p class="text-sm">${err.message}</p>
                 </div>`;
             }
