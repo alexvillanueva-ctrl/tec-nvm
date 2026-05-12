@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartelera de Cine 2025 - 2026</title>
+    <title>Cartelera de Proyección de Películas en Conchucos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -21,18 +21,18 @@
 
     <div class="marquee-container">
         <div class="marquee-content">
-            <span>🎬 CARTELERA OFICIAL 2025 - 2026 🎬</span>
+            <span>🎬 CARTELERA DE FINALES 2025 Y RECIENTES 2026 🎬</span>
             <span>🍿 ELIGE TUS 6 FAVORITAS Y VOTA 🍿</span>
-            <span>✨ IMPULSADO POR INTELIGENCIA ARTIFICIAL ✨</span>
+            <span>✨ PROXIMAMENTE EN CONCHUCOS ✨</span>
         </div>
     </div>
 
     <header class="py-10 text-center px-4 relative">
         <button onclick="localStorage.clear(); location.reload();" class="absolute top-4 right-4 text-xs bg-red-900/50 text-red-300 px-3 py-1 rounded border border-red-800 hover:bg-red-800 transition-colors z-50">
-            <i class="fa-solid fa-trash mr-1"></i> Borrar selecciones
+            <i class="fa-solid fa-trash mr-1"></i> Borrar todas las selecciones
         </button>
         
-        <h1 class="text-4xl md:text-6xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500 uppercase tracking-tighter">Cartelera TEC-NVM</h1>
+        <h1 class="text-4xl md:text-6xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500 uppercase tracking-tighter">CARTELERA TECNO-NVM</h1>
         
         <div class="max-w-3xl mx-auto mt-8 bg-gradient-to-br from-gray-900 to-gray-800 p-6 md:p-8 rounded-2xl border border-gray-700 shadow-2xl relative overflow-hidden">
             <!-- Efectos de luces de fondo -->
@@ -62,7 +62,7 @@
                 <button id="btn-ai" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-full font-bold text-sm shadow-lg transition-all active:scale-95">✨ Consultar IA</button>
             </div>
             <button id="btn-submit" disabled class="bg-gray-700 text-gray-400 font-black py-3 px-10 rounded-full uppercase tracking-widest transition-all">
-                <span id="btn-submit-text">Confirmar Voto</span>
+                <span id="btn-submit-text">Enviar tu Voto</span>
                 <i id="btn-spinner" class="fa-solid fa-spinner fa-spin ml-2 hidden"></i>
             </button>
         </div>
