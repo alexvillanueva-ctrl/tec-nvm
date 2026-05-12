@@ -257,17 +257,34 @@
         });
 
         async function fetchGeminiWithRetry(prompt, systemPrompt) {
-            // AQUÍ ESTÁ EL ARREGLO DEL MODELO CORRECTO
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] }
-            };
-            const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            if (!response.ok) throw new Error("Error de conexión");
-            const data = await response.json();
-            return data.candidates[0].content.parts[0].text;
-        }
+    // Versión simplificada y compatible
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    
+    const payload = {
+        contents: [{ 
+            parts: [{ text: `${systemPrompt}. Pregunta: ${prompt}` }] 
+        }]
+    };
+
+    const response = await fetch(url, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(payload) 
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        // Esto nos dirá el error real si falla
+        throw new Error(data.error ? data.error.message : "Error desconocido");
+    }
+
+    return data.candidates[0].content.parts[0].text;
+}
+
+// Y actualiza también el catch en handleAiInteraction para ver el error:
+// Busca donde dice aiResult.innerHTML = `...Hubo un error...` y cámbialo por:
+// aiResult.innerHTML = `<div class="text-red-400 text-center">Error: ${error.message}</div>`;
 
         async function handleAiInteraction() {
             aiModal.classList.remove('hidden');
