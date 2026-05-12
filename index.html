@@ -209,7 +209,7 @@
             }
         };
 
-        // --- SISTEMA AUTODETECTOR DE MODELOS ---
+        // --- SISTEMA DEFINITIVO CON MODELO UNIVERSAL (GEMINI-PRO) ---
         async function askAI() {
             const resBox = document.getElementById('ai-result');
             const loader = document.getElementById('ai-loading');
@@ -231,35 +231,8 @@
                 : `He seleccionado estas 6 películas: ${selectedMovies.join(', ')}. ¿Qué dicen de mis gustos?`;
 
             try {
-                // PASO 1: Preguntarle a Google qué modelos tienes habilitados
-                let targetModel = "models/gemini-1.5-flash"; // Nuestro modelo ideal
-                
-                try {
-                    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-                    if (listRes.ok) {
-                        const listData = await listRes.json();
-                        const models = listData.models || [];
-                        
-                        // Si Google nos dice que no tienes el modelo ideal, buscamos el primero que sí funcione
-                        const hasFlash = models.some(m => m.name === targetModel);
-                        if (!hasFlash) {
-                            const fallback = models.find(m => 
-                                m.supportedGenerationMethods && 
-                                m.supportedGenerationMethods.includes("generateContent") && 
-                                m.name.includes("gemini")
-                            );
-                            if (fallback) {
-                                targetModel = fallback.name; // Asignamos el modelo que Google sí acepta
-                            }
-                        }
-                    }
-                } catch (e) {
-                    // Si falla la búsqueda, continuamos con el modelo por defecto
-                    console.log("No se pudo detectar el modelo, usando el predeterminado.");
-                }
-
-                // PASO 2: Hacer la consulta de IA con el modelo garantizado
-                const url = `https://generativelanguage.googleapis.com/v1beta/${targetModel}:generateContent?key=${apiKey}`;
+                // Utilizamos el modelo gemini-pro (1.0), el cual es el más universal y compatible con todas las cuentas
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -282,7 +255,7 @@
                 loader.classList.add('hidden');
                 resBox.innerHTML = `
                 <div class="bg-red-900/40 border border-red-500 p-4 rounded-xl text-red-200">
-                    <p class="font-bold mb-2">¡SISTEMA AUTODETECT! Error:</p>
+                    <p class="font-bold mb-2">¡GEMINI PRO! Error:</p>
                     <p class="text-sm">${err.message}</p>
                 </div>`;
             }
