@@ -255,16 +255,17 @@
             }
 
             // INSTRUCCIONES ESTRICTAS PARA EVITAR EL "FLORO"
-            const systemPrompt = "Eres un recomendador de cine experto y directo. CERO palabrería. Tu objetivo es: 1) Resumir en UNA ORACIÓN el gusto del usuario según sus películas elegidas. 2) Recomendarle directamente 2 PELÍCULAS REALES (clásicos recientes o estrenos) que DEBE ver, explicando por qué en una línea cada una. Usa HTML (<b>, <br>, <ul>, <li>).";
+            const systemPrompt = "Eres un recomendador de cine experto y directo. CERO palabrería. Tu objetivo es: 1) Resumir en UNA ORACIÓN el gusto del usuario según sus películas elegidas. 2) Recomendarle directamente 2 PELÍCULAS DEL CATÁLOGO QUE TE DARÁ EL USUARIO (que aún no haya visto), explicando por qué en una línea cada una. Usa HTML (<b>, <br>, <ul>, <li>).";
             
-            // REGLA 2: Calcular cuántas faltan e indicarlo en el Prompt
+            // REGLA 2: Calcular cuántas faltan, extraer las NO seleccionadas e indicarlo en el Prompt
             let faltantes = 6 - selectedMovies.length;
+            let disponibles = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m => m.title).join(', ');
             let userPrompt = "";
 
             if (faltantes > 0) {
-                userPrompt = `He seleccionado estas ${selectedMovies.length} películas: ${selectedMovies.join(', ')}. Dime mi estilo en una línea y recomiéndame 2 películas reales que me van a encantar. Al final, añade un bloque HTML llamativo (quizás un div con color de fondo amarillo o naranja) recordando amigablemente que me faltan ${faltantes} películas de la cartelera para completar mis 6 selecciones y poder enviar mi voto.`;
+                userPrompt = `He seleccionado estas ${selectedMovies.length} películas: ${selectedMovies.join(', ')}. Dime mi estilo en una línea y recomiéndame 2 películas EXCLUSIVAMENTE de este catálogo disponible: [${disponibles}]. Al final, añade un bloque HTML llamativo (div con clase bg-yellow-900/40 text-yellow-300 p-3 rounded text-center font-bold) recordando amigablemente que me faltan ${faltantes} películas de la cartelera para completar mis 6 selecciones.`;
             } else {
-                userPrompt = `He completado mis 6 selecciones: ${selectedMovies.join(', ')}. Dime mi estilo en una línea y recomiéndame 2 películas reales que me van a encantar. Felicítame por completar mi selección.`;
+                userPrompt = `He completado mis 6 selecciones: ${selectedMovies.join(', ')}. Dime mi estilo en una línea y recomiéndame 2 películas EXCLUSIVAMENTE de este catálogo disponible para el futuro: [${disponibles}]. Felicítame por completar mi selección en un bloque HTML llamativo.`;
             }
 
             try {
@@ -311,7 +312,7 @@
 
             } catch (err) {
                 // ==========================================
-                // PLAN B: IA DE RESPALDO CON RECOMENDACIONES Y CONTADOR
+                // PLAN B: IA DE RESPALDO CON RECOMENDACIONES DE TU CATÁLOGO
                 // ==========================================
                 loader.classList.add('hidden');
                 
@@ -321,31 +322,39 @@
                 
                 if (pelisStr.includes('scream') || pelisStr.includes('ayuda') || pelisStr.includes('sonido') || pelisStr.includes('911')) {
                     perfil = "Tu estilo es adrenalina pura: buscas tensión, terror y misterio al límite.";
+                    let recs = ["Scream 7", "¡Ayuda! (Send Help)", "El sonido de la muerte", "911: Llamada Infernal"].filter(m => !selectedMovies.includes(m));
+                    if(recs.length < 2) recs = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title);
                     recomendaciones = `
                         <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
-                            <li><b>Hereditary (El legado del diablo):</b> Te volará la cabeza si buscas terror psicológico del bueno.</li>
-                            <li><b>Un lugar en silencio:</b> Tensión constante donde cada sonido puede ser el final.</li>
+                            <li><b>${recs[0]}:</b> Ideal para mantenerte al borde del asiento con su suspenso.</li>
+                            <li><b>${recs[1]}:</b> Terror y tensión pura que encaja perfecto con tus gustos.</li>
                         </ul>`;
                 } else if (pelisStr.includes('tostadora') || pelisStr.includes('familia') || pelisStr.includes('merv') || pelisStr.includes('anaconda')) {
                     perfil = "Buscas relajarte: te gusta el humor, la aventura ligera y pasar un buen rato sin complicaciones.";
+                    let recs = ["Tostadora (Toaster)", "Familia a la deriva", "Tom y Jerry: La brújula mágica", "Anaconda"].filter(m => !selectedMovies.includes(m));
+                    if(recs.length < 2) recs = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title);
                     recomendaciones = `
                         <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
-                            <li><b>Jumanji (En la selva):</b> Aventura pura con un toque de comedia excelente.</li>
-                            <li><b>Super Mario Bros. La película:</b> Divertida, colorida y perfecta para desconectar.</li>
+                            <li><b>${recs[0]}:</b> Una comedia excelente para desconectar y reír.</li>
+                            <li><b>${recs[1]}:</b> Situaciones divertidas aseguradas de principio a fin.</li>
                         </ul>`;
                 } else if (pelisStr.includes('venganza') || pelisStr.includes('apex') || pelisStr.includes('francotirador') || pelisStr.includes('mexicali')) {
                     perfil = "Eres fan de la acción cruda: persecuciones, disparos y protagonistas que no se rinden.";
+                    let recs = ["Venganza", "Apex", "Francotirador sin nación", "Mexicali: Tierra sin ley"].filter(m => !selectedMovies.includes(m));
+                    if(recs.length < 2) recs = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title);
                     recomendaciones = `
                         <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
-                            <li><b>John Wick 4:</b> La obra maestra moderna de la acción y la coreografía de combates.</li>
-                            <li><b>Mad Max: Furia en el camino:</b> Adrenalina vehicular sin pausa de principio a fin.</li>
+                            <li><b>${recs[0]}:</b> Acción imparable y adrenalina al máximo nivel.</li>
+                            <li><b>${recs[1]}:</b> Una trama intensa que no te dará un solo respiro.</li>
                         </ul>`;
                 } else {
                     perfil = "Tienes un paladar versátil: disfrutas de buenas historias, ya sea en el drama, la ciencia ficción o la comedia.";
+                    let recs = ["Avatar: Fuego y Cenizas", "Caminos del crimen (Crime 101)", "Sin Piedad (Mercy)", "La caja azul"].filter(m => !selectedMovies.includes(m));
+                    if(recs.length < 2) recs = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title);
                     recomendaciones = `
                         <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
-                            <li><b>Dune: Parte Dos:</b> Una experiencia visual y narrativa de ciencia ficción espectacular.</li>
-                            <li><b>Todo a la vez en todas partes:</b> Una mezcla loca de acción, comedia y multiversos.</li>
+                            <li><b>${recs[0]}:</b> Una historia atrapante con un desarrollo espectacular.</li>
+                            <li><b>${recs[1]}:</b> Una trama inmersiva que definitivamente encajará en tus gustos.</li>
                         </ul>`;
                 }
 
