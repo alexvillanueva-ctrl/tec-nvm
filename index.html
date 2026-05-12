@@ -229,7 +229,7 @@
         }
 
         // ==========================================
-        // SISTEMA IA: AUTO-DETECT + PLAN B + REGLA DE MÍNIMOS
+        // SISTEMA IA: AUTO-DETECT + PLAN B DINÁMICO
         // ==========================================
         async function askAI() {
             const resBox = document.getElementById('ai-result');
@@ -263,11 +263,12 @@
                 return;
             }
 
-            // INSTRUCCIONES ESTRICTAS: 1ra Persona Singular y Cero Floro
-            const systemPrompt = "Eres un recomendador de cine experto y directo. CERO palabrería. Habla SIEMPRE en primera persona del singular (ej. 'Te recomiendo', 'He notado que'). NUNCA uses plural. Tu objetivo es: 1) Resumir en UNA ORACIÓN el gusto del usuario según sus películas elegidas. 2) Recomendarle directamente 2 PELÍCULAS DEL CATÁLOGO QUE TE DARÁ EL USUARIO (que aún no haya seleccionado), explicando por qué en una línea cada una. Usa HTML (<b>, <br>, <ul>, <li>).";
-            
-            // REGLA 2: Calcular cuántas faltan y extraer las NO seleccionadas
+            // REGLA 2: Calcular matemáticamente cuántas faltan
             let faltantes = 6 - selectedMovies.length;
+            let numRecs = faltantes > 0 ? faltantes : 2; // Si faltan, sugiere las exactas. Si completó las 6, da 2 de "bonus".
+
+            // INSTRUCCIONES ESTRICTAS: 1ra Persona, Cero Floro y Cantidad Dinámica (numRecs)
+            const systemPrompt = `Eres un recomendador de cine experto y directo. CERO palabrería. Habla SIEMPRE en primera persona del singular (ej. 'Te recomiendo', 'He notado que'). NUNCA uses plural. Tu objetivo es: 1) Resumir en UNA ORACIÓN el gusto del usuario según sus películas elegidas. 2) Recomendarle directamente EXACTAMENTE ${numRecs} PELÍCULAS DEL CATÁLOGO QUE TE DARÁ EL USUARIO (que aún no haya seleccionado), explicando por qué en una línea cada una. Usa HTML (<b>, <br>, <ul>, <li>).`;
             
             // MAGIA: Mezclamos el catálogo para que la IA siempre lea opciones distintas primero
             let disponiblesArray = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m => m.title);
@@ -277,9 +278,9 @@
             let userPrompt = "";
 
             if (faltantes > 0) {
-                userPrompt = `He seleccionado estas ${selectedMovies.length} películas: ${selectedMovies.join(', ')}. Dime mi estilo en una línea y recomiéndame 2 películas EXCLUSIVAMENTE de este catálogo disponible: [${disponibles}]. Al final, añade un bloque HTML llamativo (div con clase bg-yellow-900/40 text-yellow-300 p-3 rounded text-center font-bold) recordando amigablemente que me faltan ${faltantes} películas de la cartelera para completar mis 6 selecciones.`;
+                userPrompt = `He seleccionado estas ${selectedMovies.length} películas: ${selectedMovies.join(', ')}. Dime mi estilo en una línea y recomiéndame EXACTAMENTE ${numRecs} películas EXCLUSIVAMENTE de este catálogo disponible: [${disponibles}]. Al final, añade un bloque HTML llamativo (div con clase bg-yellow-900/40 text-yellow-300 p-3 rounded text-center font-bold) recordando amigablemente que me faltan ${faltantes} películas de la cartelera para completar mis 6 selecciones.`;
             } else {
-                userPrompt = `He completado mis 6 selecciones: ${selectedMovies.join(', ')}. Dime mi estilo en una línea y recomiéndame 2 películas EXCLUSIVAMENTE de este catálogo disponible para el futuro: [${disponibles}]. Felicítame por completar mi selección en un bloque HTML llamativo.`;
+                userPrompt = `He completado mis 6 selecciones: ${selectedMovies.join(', ')}. Dime mi estilo en una línea y recomiéndame ${numRecs} películas EXTRA EXCLUSIVAMENTE de este catálogo disponible para el futuro: [${disponibles}]. Felicítame por completar mi selección en un bloque HTML llamativo.`;
             }
 
             try {
@@ -326,7 +327,7 @@
 
             } catch (err) {
                 // ==========================================
-                // PLAN B: IA DE RESPALDO (MEZCLADA Y EN SINGULAR)
+                // PLAN B: IA DE RESPALDO (DINÁMICA EN NÚMERO DE RECOMENDACIONES)
                 // ==========================================
                 loader.classList.add('hidden');
                 
@@ -337,39 +338,42 @@
                 if (pelisStr.includes('scream') || pelisStr.includes('ayuda') || pelisStr.includes('sonido') || pelisStr.includes('911')) {
                     perfil = "Veo que tu estilo es adrenalina pura: buscas tensión, terror y misterio al límite.";
                     let recs = shuffleArray(["Scream 7", "¡Ayuda! (Send Help)", "El sonido de la muerte", "911: Llamada Infernal"].filter(m => !selectedMovies.includes(m)));
-                    if(recs.length < 2) recs = shuffleArray(moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title));
-                    recomendaciones = `
-                        <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
-                            <li><b>${recs[0]}:</b> Ideal para mantenerte al borde del asiento con su suspenso.</li>
-                            <li><b>${recs[1]}:</b> Terror y tensión pura que encaja perfecto con tus gustos.</li>
-                        </ul>`;
+                    if(recs.length < numRecs) recs = shuffleArray(moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title));
+                    
+                    let reasons = ["Ideal para mantenerte al borde del asiento con su suspenso.", "Terror y tensión pura que encaja perfecto con tus gustos.", "Te dejará sin aliento de principio a fin.", "Una experiencia oscura y atrapante que disfrutarás."];
+                    let list = "";
+                    for(let i = 0; i < numRecs; i++) { list += `<li><b>${recs[i]}:</b> ${reasons[i % reasons.length]}</li>`; }
+                    recomendaciones = `<ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">${list}</ul>`;
+                    
                 } else if (pelisStr.includes('tostadora') || pelisStr.includes('familia') || pelisStr.includes('merv') || pelisStr.includes('anaconda')) {
                     perfil = "Noto que buscas relajarte: te gusta el humor, la aventura ligera y pasar un buen rato.";
                     let recs = shuffleArray(["Tostadora (Toaster)", "Familia a la deriva", "Tom y Jerry: La brújula mágica", "Anaconda"].filter(m => !selectedMovies.includes(m)));
-                    if(recs.length < 2) recs = shuffleArray(moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title));
-                    recomendaciones = `
-                        <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
-                            <li><b>${recs[0]}:</b> Una comedia excelente para desconectar y reír.</li>
-                            <li><b>${recs[1]}:</b> Situaciones divertidas aseguradas de principio a fin.</li>
-                        </ul>`;
+                    if(recs.length < numRecs) recs = shuffleArray(moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title));
+                    
+                    let reasons = ["Una comedia excelente para desconectar y reír.", "Situaciones divertidas aseguradas de principio a fin.", "Te hará pasar un rato increíble y relajado.", "Perfecta para disfrutar y olvidarse del estrés por un rato."];
+                    let list = "";
+                    for(let i = 0; i < numRecs; i++) { list += `<li><b>${recs[i]}:</b> ${reasons[i % reasons.length]}</li>`; }
+                    recomendaciones = `<ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">${list}</ul>`;
+                    
                 } else if (pelisStr.includes('venganza') || pelisStr.includes('apex') || pelisStr.includes('francotirador') || pelisStr.includes('mexicali')) {
                     perfil = "Percibo que eres fan de la acción cruda: persecuciones, disparos y tensión.";
                     let recs = shuffleArray(["Venganza", "Apex", "Francotirador sin nación", "Mexicali: Tierra sin ley"].filter(m => !selectedMovies.includes(m)));
-                    if(recs.length < 2) recs = shuffleArray(moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title));
-                    recomendaciones = `
-                        <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
-                            <li><b>${recs[0]}:</b> Acción imparable y adrenalina al máximo nivel.</li>
-                            <li><b>${recs[1]}:</b> Una trama intensa que no te dará un solo respiro.</li>
-                        </ul>`;
+                    if(recs.length < numRecs) recs = shuffleArray(moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title));
+                    
+                    let reasons = ["Acción imparable y adrenalina al máximo nivel.", "Una trama intensa que no te dará un solo respiro.", "Persecuciones y combates que te mantendrán atrapado.", "Protagonistas letales y ritmo frenético asegurado."];
+                    let list = "";
+                    for(let i = 0; i < numRecs; i++) { list += `<li><b>${recs[i]}:</b> ${reasons[i % reasons.length]}</li>`; }
+                    recomendaciones = `<ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">${list}</ul>`;
+                    
                 } else {
                     perfil = "Veo que tienes un paladar versátil: disfrutas de buenas historias en cualquier género.";
                     let recs = shuffleArray(["Avatar: Fuego y Cenizas", "Caminos del crimen (Crime 101)", "Sin Piedad (Mercy)", "La caja azul"].filter(m => !selectedMovies.includes(m)));
-                    if(recs.length < 2) recs = shuffleArray(moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title));
-                    recomendaciones = `
-                        <ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">
-                            <li><b>${recs[0]}:</b> Una historia atrapante con un desarrollo espectacular.</li>
-                            <li><b>${recs[1]}:</b> Una trama inmersiva que definitivamente te gustará.</li>
-                        </ul>`;
+                    if(recs.length < numRecs) recs = shuffleArray(moviesData.filter(m => !selectedMovies.includes(m.title)).map(m=>m.title));
+                    
+                    let reasons = ["Una historia atrapante con un desarrollo espectacular.", "Una trama inmersiva que definitivamente te gustará.", "Cine de altísima calidad para tu paladar exigente.", "Una experiencia visual y narrativa de primer nivel."];
+                    let list = "";
+                    for(let i = 0; i < numRecs; i++) { list += `<li><b>${recs[i]}:</b> ${reasons[i % reasons.length]}</li>`; }
+                    recomendaciones = `<ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">${list}</ul>`;
                 }
 
                 // Generar mensaje de películas faltantes para el modo offline
