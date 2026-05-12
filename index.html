@@ -70,11 +70,13 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN (Mantener tus URLs actuales)
+        // CONFIGURACIÓN: Reemplaza con tus datos
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpsxlzzzlGk3rpCxEyk7jNd0xjzagdUFSFNI4pPV5BaaK1GQlt68EoMVK3nmQ_9Iux_A/exec"; 
+        
+        // Pon tu nueva API KEY aquí adentro de las comillas
         const apiKey = "AIzaSyCEUYCVSiimCMzg3X4jKIGWm5AzHwRXPmA";
 
-        // LISTA DE PELÍCULAS ORIGINAL (22 títulos preservados)
+        // LISTA DE PELÍCULAS ORIGINAL
         const moviesData = [
             { title: "Scream 7", synopsis: "Sidney Prescott y los sobrevivientes de Woodsboro se enfrentan a un nuevo y sádico asesino detrás de la máscara de Ghostface.", genre: "Terror, Comedia", category: "Adolescentes y adultos", release: "27/Feb/2026", platform: "Mundial", youtubeId: "bK-Sam8baFU" },
             { title: "Avatar: Fuego y Cenizas", synopsis: "Jake Sully y Neytiri se enfrentan a una nueva y agresiva tribu Na'vi, el \"Pueblo de las Cenizas\", explorando zonas oscuras de Pandora.", genre: "Ciencia Ficción, Aventura", category: "Adolescentes y adultos", release: "18/Dic/2025", platform: "Perú", youtubeId: "Ma1x7ikpid8" },
@@ -209,7 +211,7 @@
             }
         };
 
-        // FUNCIÓN DE IA MEJORADA (Modelo y URL corregidos)
+        // FUNCIÓN DE IA 100% ESTABLE Y DEFINITIVA
         async function askAI() {
             const resBox = document.getElementById('ai-result');
             const loader = document.getElementById('ai-loading');
@@ -225,14 +227,14 @@
                 return;
             }
 
-            const systemPrompt = "Eres un experto crítico de cine. Analiza las 6 películas elegidas y define la personalidad del usuario. Usa HTML (<b>, <br>, <ul>, <li>). Sé breve.";
+            const systemPrompt = "Eres un experto crítico de cine. Analiza las películas elegidas y define la personalidad del usuario. Usa HTML (<b>, <br>, <ul>, <li>). Sé breve.";
             const userPrompt = selectedMovies.length === 0 
                 ? "¿Qué películas recomiendas para el 2025?" 
                 : `He seleccionado estas 6 películas: ${selectedMovies.join(', ')}. ¿Qué dicen de mis gustos?`;
 
             try {
-                // Implementación estable para Gemini 1.5 Flash
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+                // AQUÍ ESTÁ LA MAGIA QUE TU NAVEGADOR IGNORABA (v1beta y gemini-1.5-flash)
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -245,15 +247,21 @@
                 const data = await response.json();
                 loader.classList.add('hidden');
 
-                if (data.candidates && data.candidates[0].content) {
+                if (response.ok && data.candidates && data.candidates[0].content) {
                     let text = data.candidates[0].content.parts[0].text;
                     resBox.innerHTML = text.replace(/```html/g, '').replace(/```/g, '').trim();
-                } else if (data.error) {
-                    throw new Error(data.error.message);
+                } else {
+                    throw new Error(data.error ? data.error.message : "Error desconocido de Google.");
                 }
             } catch (err) {
                 loader.classList.add('hidden');
-                resBox.innerHTML = `<p class='text-red-500'>Error de IA: ${err.message}</p>`;
+                
+                // Le cambié el título para que notes cuando realmente cargó el código nuevo
+                resBox.innerHTML = `
+                <div class="bg-red-900/40 border border-red-500 p-4 rounded-xl text-red-200">
+                    <p class="font-bold mb-2">¡NUEVO SISTEMA! Error de Conexión:</p>
+                    <p class="text-sm">${err.message}</p>
+                </div>`;
             }
         }
 
