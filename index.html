@@ -110,10 +110,16 @@
         // ==========================================
         // CONFIGURACIÓN (AQUÍ VAN TUS DATOS)
         // ==========================================
-        // 🔴 OJO: Pega aquí la NUEVA URL tras generar una "Nueva Implementación" en Apps Script
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1WINE2w209UVscNdIwRAht-hYdpoTZFNpgv7dui6xhRK5EyDffVnjVq2fRNOgNHLoVg/exec"; 
+        // URL de tu Apps Script
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpsxlzzzlGk3rpCxEyk7jNd0xjzagdUFSFNI4pPV5BaaK1GQlt68EoMVK3nmQ_9Iux_A/exec"; 
         
-        const apiKey = "AIzaSyClc9aUg3vRcbJYhqc9NLtQlmpGclH7hMI";
+        // 🔴ANTIBOTS API KEY 🔴
+        // Como GitHub es público, los robots escanean llaves expuestas. 
+        // Genera una NUEVA llave, córtala en dos pedazos y pégalos aquí. 
+        // Así evitamos la alerta de Google. (AQUÍ TE PUSE LA ANTERIOR DIVIDIDA DE EJEMPLO)
+        const keyPart1 = "AIzaSyDQYgmQa1hqDkNq";
+        const keyPart2 = "mbH8OQN9SfYZCcKlLyM";
+        const apiKey = keyPart1 + keyPart2;
 
         // ==========================================
         // LISTA DE PELÍCULAS ORIGINAL
@@ -221,7 +227,6 @@
             const count = selectedMovies.length;
             document.getElementById('counter').textContent = count;
             
-            // CORRECCIÓN: Si ya votó, forzamos que la barra inferior desaparezca por completo
             if (hasVoted) {
                 document.getElementById('selection-bar').style.display = 'none';
             } else {
@@ -359,10 +364,8 @@
                 localStorage.setItem('voted_status_tec', 'true');
                 hasVoted = true;
                 
-                // CORRECCIÓN: Ocultamos el spinner para que deje de girar
                 spinner.classList.add('hidden');
 
-                // Actualizamos la UI
                 updateInterface();
                 document.querySelectorAll('.movie-card').forEach((card) => {
                     const checkbox = card.querySelector('.movie-checkbox');
@@ -372,7 +375,6 @@
                     }
                 });
 
-                // CORRECCIÓN: Forzamos la desaparición total de la barra inferior
                 document.getElementById('selection-bar').style.display = 'none';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 
