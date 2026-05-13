@@ -110,8 +110,8 @@
         // ==========================================
         // CONFIGURACIÓN (AQUÍ VAN TUS DATOS)
         // ==========================================
-        // 🔴 OJO: Recuerda cambiar esto por la NUEVA URL que te arroje Apps Script después de implementar el paso 1.
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyKfnrpZBsdvXxrrsswpxI75Pq221zDnJKUSUtHK-S_i8PBpH52nnDZeU9hnrS8jPcRQ/exec"; 
+        // 🔴 OJO: Pega aquí la NUEVA URL tras generar una "Nueva Implementación" en Apps Script
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwL85KCnvk0Jbw6a9Ijn5hdkNm6BoSjtRKmfO1rcihuSGnlc5Xm81AjljX4emsldpViLg/exec"; 
         
         const apiKey = "AIzaSyClc9aUg3vRcbJYhqc9NLtQlmpGclH7hMI";
 
@@ -146,7 +146,7 @@
         let selectedMovies = JSON.parse(localStorage.getItem('votos_tec_nvm')) || [];
         let hasVoted = localStorage.getItem('voted_status_tec') === 'true';
         let ytPlayers = [];
-        let chartInstance = null; // Guardará el gráfico en memoria
+        let chartInstance = null; 
 
         function renderMovies() {
             const grid = document.getElementById('catalog-grid');
@@ -220,7 +220,13 @@
         function updateInterface() {
             const count = selectedMovies.length;
             document.getElementById('counter').textContent = count;
-            document.getElementById('selection-bar').classList.toggle('translate-y-full', count === 0 && !hasVoted);
+            
+            // CORRECCIÓN: Si ya votó, forzamos que la barra inferior desaparezca por completo
+            if (hasVoted) {
+                document.getElementById('selection-bar').style.display = 'none';
+            } else {
+                document.getElementById('selection-bar').classList.toggle('translate-y-full', count === 0);
+            }
             
             const btn = document.getElementById('btn-submit');
             if (count === 6 && !hasVoted) {
@@ -244,18 +250,15 @@
             const loader = document.getElementById('chart-loading');
             const ctx = document.getElementById('rankingChart').getContext('2d');
             
-            // Colores vibrantes estilo Google Sheets
             const colors = ['#2563eb', '#f59e0b', '#eab308', '#dc2626', '#16a34a', '#06b6d4', '#9ca3af', '#ec4899', '#8b5cf6'];
             
             try {
-                // Intentamos pedir los datos al Google Script actualizado
                 const res = await fetch(GOOGLE_SCRIPT_URL);
                 if (!res.ok) throw new Error("Requiere actualizar el Apps Script");
                 
                 const data = await res.json();
                 loader.classList.add('hidden');
                 
-                // Mostrar solo el Top 15 para que no se amontone
                 const topData = data.slice(0, 15);
                 const labels = topData.map(d => d.movie);
                 const votes = topData.map(d => d.votes);
@@ -294,8 +297,6 @@
                 });
 
             } catch (error) {
-                // Si la URL aún no está actualizada o el CORS bloquea, 
-                // generamos un gráfico temporal local para no dejar vacía la pantalla
                 loader.classList.add('hidden');
                 let localCounts = {};
                 selectedMovies.forEach(m => localCounts[m] = 1);
@@ -358,7 +359,10 @@
                 localStorage.setItem('voted_status_tec', 'true');
                 hasVoted = true;
                 
-                // Apagamos visualmente las no seleccionadas
+                // CORRECCIÓN: Ocultamos el spinner para que deje de girar
+                spinner.classList.add('hidden');
+
+                // Actualizamos la UI
                 updateInterface();
                 document.querySelectorAll('.movie-card').forEach((card) => {
                     const checkbox = card.querySelector('.movie-checkbox');
@@ -368,11 +372,10 @@
                     }
                 });
 
-                // NUEVO: Ocultamos la barra de envío, subimos y mostramos el gráfico
-                document.getElementById('selection-bar').classList.add('hidden');
+                // CORRECCIÓN: Forzamos la desaparición total de la barra inferior
+                document.getElementById('selection-bar').style.display = 'none';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 
-                // Esperamos un segundo para que los datos lleguen a Google y cargamos el gráfico
                 setTimeout(fetchAndRenderChart, 1500);
 
             } catch (e) {
@@ -585,7 +588,7 @@
             loadYouTubeAPI(); 
             // Si ya votó anteriormente, mostramos el gráfico al cargar
             if(hasVoted) {
-                document.getElementById('selection-bar').classList.add('hidden');
+                document.getElementById('selection-bar').style.display = 'none';
                 fetchAndRenderChart();
             }
         };
