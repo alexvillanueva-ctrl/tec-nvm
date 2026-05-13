@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartelera de Proyección de Películas en Conchucos</title>
+    <title>Cartelera de Cine 2025 - 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -21,21 +21,20 @@
 
     <div class="marquee-container">
         <div class="marquee-content">
-            <span>🎬 CARTELERA DE FINALES 2025 Y RECIENTES 2026 🎬</span>
+            <span>🎬 CARTELERA OFICIAL 2025 - 2026 🎬</span>
             <span>🍿 ELIGE TUS 6 FAVORITAS Y VOTA 🍿</span>
-            <span>✨ PROXIMAMENTE EN CONCHUCOS ✨</span>
+            <span>✨ IMPULSADO POR INTELIGENCIA ARTIFICIAL ✨</span>
         </div>
     </div>
 
     <header class="py-10 text-center px-4 relative">
         <button onclick="localStorage.clear(); location.reload();" class="absolute top-4 right-4 text-xs bg-red-900/50 text-red-300 px-3 py-1 rounded border border-red-800 hover:bg-red-800 transition-colors z-50">
-            <i class="fa-solid fa-trash mr-1"></i> Borrar todas las selecciones
+            <i class="fa-solid fa-trash mr-1"></i> Borrar selecciones
         </button>
         
-        <h1 class="text-4xl md:text-6xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500 uppercase tracking-tighter">CARTELERA TECNO-NVM</h1>
+        <h1 class="text-4xl md:text-6xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500 uppercase tracking-tighter">Cartelera TEC-NVM</h1>
         
         <div class="max-w-3xl mx-auto mt-8 bg-gradient-to-br from-gray-900 to-gray-800 p-6 md:p-8 rounded-2xl border border-gray-700 shadow-2xl relative overflow-hidden">
-            <!-- Efectos de luces de fondo -->
             <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-600 rounded-full blur-[50px] opacity-20"></div>
             <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-yellow-500 rounded-full blur-[50px] opacity-20"></div>
             
@@ -124,23 +123,28 @@
 
         let selectedMovies = JSON.parse(localStorage.getItem('votos_tec_nvm')) || [];
         let hasVoted = localStorage.getItem('voted_status_tec') === 'true';
+        
+        // Array para guardar los reproductores de YouTube
+        let ytPlayers = [];
 
         function renderMovies() {
             const grid = document.getElementById('catalog-grid');
             grid.innerHTML = '';
-            moviesData.forEach(m => {
+            moviesData.forEach((m, index) => {
                 const isSelected = selectedMovies.includes(m.title);
                 const card = document.createElement('div');
+                // Se asigna la clase general. El borde se manejará dinámicamente sin recargar
                 card.className = `movie-card rounded-2xl overflow-hidden relative ${hasVoted && !isSelected ? 'disabled-card' : ''}`;
                 if (isSelected) card.classList.add('ring-4', 'ring-red-600');
                 
+                // NOTA: Se añadió ?enablejsapi=1 a la URL del iframe para poder controlarlo con JS
                 card.innerHTML = `
                     <div class="absolute top-3 right-3 z-10">
                         <input type="checkbox" value="${m.title}" ${isSelected ? 'checked' : ''} ${hasVoted ? 'disabled' : ''} 
                         class="movie-checkbox w-7 h-7 rounded-full accent-red-600 cursor-pointer shadow-xl">
                     </div>
                     <div class="aspect-video bg-black">
-                        <iframe class="w-full h-full" src="https://www.youtube.com/embed/${m.youtubeId}" frameborder="0" allowfullscreen></iframe>
+                        <iframe id="player-${index}" class="w-full h-full" src="https://www.youtube.com/embed/${m.youtubeId}?enablejsapi=1&rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
                     </div>
                     <div class="p-5 flex-grow flex flex-col bg-gray-800/30">
                         <h3 class="text-xl font-bold text-white mb-2 leading-tight pr-8">${m.title}</h3>
@@ -173,6 +177,32 @@
             updateInterface();
         }
 
+        // ==========================================
+        // CONTROLADOR DE CLICS (CERO PARPADEOS)
+        // ==========================================
+        document.getElementById('catalog-grid').addEventListener('change', e => {
+            if (e.target.classList.contains('movie-checkbox')) {
+                const card = e.target.closest('.movie-card'); // Seleccionamos la tarjeta individual
+                
+                if (e.target.checked) {
+                    if (selectedMovies.length >= 6) { 
+                        e.target.checked = false; 
+                        return; 
+                    }
+                    selectedMovies.push(e.target.value);
+                    // Solo pintamos esta tarjeta en particular (no recargamos todo)
+                    card.classList.add('ring-4', 'ring-red-600');
+                } else {
+                    selectedMovies = selectedMovies.filter(t => t !== e.target.value);
+                    // Removemos el color solo de esta tarjeta
+                    card.classList.remove('ring-4', 'ring-red-600');
+                }
+                
+                localStorage.setItem('votos_tec_nvm', JSON.stringify(selectedMovies));
+                updateInterface(); // Actualiza los numeritos de abajo
+            }
+        });
+
         function updateInterface() {
             const count = selectedMovies.length;
             document.getElementById('counter').textContent = count;
@@ -192,19 +222,9 @@
             }
         }
 
-        document.getElementById('catalog-grid').addEventListener('change', e => {
-            if (e.target.classList.contains('movie-checkbox')) {
-                if (e.target.checked) {
-                    if (selectedMovies.length >= 6) { e.target.checked = false; return; }
-                    selectedMovies.push(e.target.value);
-                } else {
-                    selectedMovies = selectedMovies.filter(t => t !== e.target.value);
-                }
-                localStorage.setItem('votos_tec_nvm', JSON.stringify(selectedMovies));
-                renderMovies();
-            }
-        });
-
+        // ==========================================
+        // ENVÍO DE DATOS A GOOGLE SHEETS
+        // ==========================================
         document.getElementById('btn-submit').onclick = async () => {
             if (selectedMovies.length !== 6) return;
             const btnText = document.getElementById('btn-submit-text');
@@ -215,18 +235,15 @@
 
             const fd = new FormData();
             
-            // --- NUEVO: OBTENER IP Y NAVEGADOR PARA GOOGLE SHEETS ---
+            // OBTENER IP Y NAVEGADOR
             fd.append('userAgent', navigator.userAgent);
-            
             try {
-                // Servicio gratuito y rápido para obtener la IP pública
                 const ipRes = await fetch('https://api.ipify.org?format=json');
                 const ipData = await ipRes.json();
                 fd.append('ip', ipData.ip);
             } catch (err) {
                 fd.append('ip', 'IP Oculta o Bloqueada');
             }
-            // --------------------------------------------------------
 
             selectedMovies.forEach((m, i) => fd.append(`pelicula${i+1}`, m));
 
@@ -234,18 +251,29 @@
                 if (GOOGLE_SCRIPT_URL.includes("https")) {
                     await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: fd });
                 }
+                
+                // Finalizamos el voto
                 localStorage.setItem('voted_status_tec', 'true');
                 hasVoted = true;
-                renderMovies();
+                
+                // En lugar de reconstruir toda la página, solo apagamos visualmente las no seleccionadas
+                updateInterface();
+                document.querySelectorAll('.movie-card').forEach((card) => {
+                    const checkbox = card.querySelector('.movie-checkbox');
+                    checkbox.disabled = true;
+                    if (!checkbox.checked) {
+                        card.classList.add('disabled-card');
+                    }
+                });
+
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (e) {
                 alert("Error de conexión con la base de datos.");
-                btnText.textContent = "Enviar tu Voto"; // Actualizado para que coincida con tu diseño
+                btnText.textContent = "Enviar tu Voto";
                 spinner.classList.add('hidden');
             }
         };
 
-        // Función para barajar (mezclar) la lista y evitar respuestas repetitivas de la IA
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -268,7 +296,6 @@
             resBox.innerHTML = "";
             loader.classList.remove('hidden');
 
-            // REGLA 1: Exigir al menos 2 películas para analizar el perfil
             if (selectedMovies.length < 2) {
                 loader.classList.add('hidden');
                 resBox.innerHTML = `
@@ -289,14 +316,11 @@
                 return;
             }
 
-            // REGLA 2: Calcular matemáticamente cuántas faltan
             let faltantes = 6 - selectedMovies.length;
-            let numRecs = faltantes > 0 ? faltantes : 2; // Si faltan, sugiere las exactas. Si completó las 6, da 2 de "bonus".
+            let numRecs = faltantes > 0 ? faltantes : 2; 
 
-            // INSTRUCCIONES ESTRICTAS: 1ra Persona, Cero Floro y Cantidad Dinámica (numRecs)
             const systemPrompt = `Eres un recomendador de cine experto y directo. CERO palabrería. Habla SIEMPRE en primera persona del singular (ej. 'Te recomiendo', 'He notado que'). NUNCA uses plural. Tu objetivo es: 1) Resumir en UNA ORACIÓN el gusto del usuario según sus películas elegidas. 2) Recomendarle directamente EXACTAMENTE ${numRecs} PELÍCULAS DEL CATÁLOGO QUE TE DARÁ EL USUARIO (que aún no haya seleccionado), explicando por qué en una línea cada una. Usa HTML (<b>, <br>, <ul>, <li>).`;
             
-            // MAGIA: Mezclamos el catálogo para que la IA siempre lea opciones distintas primero
             let disponiblesArray = moviesData.filter(m => !selectedMovies.includes(m.title)).map(m => m.title);
             disponiblesArray = shuffleArray(disponiblesArray);
             let disponibles = disponiblesArray.join(', ');
@@ -312,7 +336,6 @@
             try {
                 if(loadText) loadText.textContent = "Buscando modelos compatibles...";
 
-                // 1. Detectar el modelo
                 const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
                 const modelsData = await modelsRes.json();
                 
@@ -330,7 +353,6 @@
 
                 if(loadText) loadText.textContent = "Generando recomendaciones personalizadas...";
 
-                // 2. Hacer la consulta con el modelo correcto
                 const url = `https://generativelanguage.googleapis.com/v1beta/${modeloAprobado}:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
@@ -352,9 +374,6 @@
                 }
 
             } catch (err) {
-                // ==========================================
-                // PLAN B: IA DE RESPALDO (DINÁMICA EN NÚMERO DE RECOMENDACIONES)
-                // ==========================================
                 loader.classList.add('hidden');
                 
                 let perfil = "";
@@ -402,7 +421,6 @@
                     recomendaciones = `<ul class="list-disc pl-5 mt-3 space-y-2 text-gray-300 text-base">${list}</ul>`;
                 }
 
-                // Generar mensaje de películas faltantes para el modo offline
                 let mensajeFaltantes = faltantes > 0 
                     ? `<div class="mt-6 p-3 bg-yellow-900/40 border border-yellow-600/50 rounded-lg text-yellow-300 text-center font-bold">
                         <i class="fa-solid fa-bell mr-2 animate-pulse"></i> ¡Te recuerdo que aún te faltan ${faltantes} películas para completar tus 6 opciones!
@@ -428,7 +446,42 @@
             document.getElementById('ai-modal').classList.remove('flex');
         }
 
-        window.onload = renderMovies;
+        // ==========================================
+        // CONTROL MAGISTRAL DE AUDIOS (API YOUTUBE)
+        // ==========================================
+        function loadYouTubeAPI() {
+            var tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            var firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+
+        // Esta función es llamada automáticamente por YouTube cuando su script está listo
+        function onYouTubeIframeAPIReady() {
+            moviesData.forEach((m, index) => {
+                let player = new YT.Player(`player-${index}`, {
+                    events: {
+                        'onStateChange': function(event) {
+                            // Si el estado es 1 (Reproduciendo)
+                            if (event.data == YT.PlayerState.PLAYING) {
+                                // Buscamos y pausamos todos los demás videos
+                                ytPlayers.forEach(p => {
+                                    if (p !== event.target && typeof p.pauseVideo === 'function') {
+                                        p.pauseVideo();
+                                    }
+                                });
+                            }
+                        }
+                    }
+                });
+                ytPlayers.push(player);
+            });
+        }
+
+        window.onload = () => {
+            renderMovies(); // Dibuja la cartelera
+            loadYouTubeAPI(); // Inicia la magia para pausar videos cruzados
+        };
     </script>
 </body>
 </html>
