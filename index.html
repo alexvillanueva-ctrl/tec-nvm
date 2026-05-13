@@ -214,6 +214,20 @@
             spinner.classList.remove('hidden');
 
             const fd = new FormData();
+            
+            // --- NUEVO: OBTENER IP Y NAVEGADOR PARA GOOGLE SHEETS ---
+            fd.append('userAgent', navigator.userAgent);
+            
+            try {
+                // Servicio gratuito y rápido para obtener la IP pública
+                const ipRes = await fetch('https://api.ipify.org?format=json');
+                const ipData = await ipRes.json();
+                fd.append('ip', ipData.ip);
+            } catch (err) {
+                fd.append('ip', 'IP Oculta o Bloqueada');
+            }
+            // --------------------------------------------------------
+
             selectedMovies.forEach((m, i) => fd.append(`pelicula${i+1}`, m));
 
             try {
@@ -226,7 +240,7 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (e) {
                 alert("Error de conexión con la base de datos.");
-                btnText.textContent = "Confirmar Voto";
+                btnText.textContent = "Enviar tu Voto"; // Actualizado para que coincida con tu diseño
                 spinner.classList.add('hidden');
             }
         };
