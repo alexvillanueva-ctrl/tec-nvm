@@ -6,6 +6,8 @@
     <title>Cartelera Proyección de Películas 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- NUEVO: Librería de gráficos profesionales Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #0f172a; color: #f8fafc; }
         .marquee-container { width: 100%; overflow: hidden; background: linear-gradient(90deg, #dc2626, #991b1b); color: white; padding: 12px 0; position: relative; z-index: 50; }
@@ -49,7 +51,27 @@
         </div>
     </header>
 
-    <main class="container mx-auto px-4 pb-20">
+    <!-- NUEVO: Sección de Resultados en Vivo (Oculta por defecto) -->
+    <section id="results-section" class="container mx-auto px-4 pb-10 hidden">
+        <div class="max-w-5xl mx-auto bg-gray-900 border-2 border-indigo-500/50 rounded-3xl p-6 md:p-10 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-red-500"></div>
+            <h2 class="text-3xl md:text-4xl font-black text-white mb-2 text-center uppercase tracking-wider">Ranking en Vivo 📊</h2>
+            <p class="text-center text-gray-400 mb-8">Resultados consolidados de las películas más votadas.</p>
+            
+            <div id="chart-loading" class="flex flex-col items-center justify-center py-10">
+                <div class="w-12 h-12 border-4 border-t-indigo-500 border-gray-700 rounded-full animate-spin mb-4"></div>
+                <p class="text-indigo-400 font-semibold animate-pulse">Obteniendo datos de Google Sheets...</p>
+            </div>
+            
+            <!-- Aquí se dibujará el gráfico -->
+            <div class="relative w-full" style="height: 60vh;">
+                <canvas id="rankingChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- Catálogo Principal -->
+    <main id="catalog-section" class="container mx-auto px-4 pb-20">
         <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
     </main>
 
@@ -88,9 +110,9 @@
         // ==========================================
         // CONFIGURACIÓN (AQUÍ VAN TUS DATOS)
         // ==========================================
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpsxlzzzlGk3rpCxEyk7jNd0xjzagdUFSFNI4pPV5BaaK1GQlt68EoMVK3nmQ_9Iux_A/exec"; 
+        // 🔴 OJO: Recuerda cambiar esto por la NUEVA URL que te arroje Apps Script después de implementar el paso 1.
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzyKfnrpZBsdvXxrrsswpxI75Pq221zDnJKUSUtHK-S_i8PBpH52nnDZeU9hnrS8jPcRQ/exec"; 
         
-        // 🔴 PEGA AQUÍ TU LLAVE PERSONAL
         const apiKey = "AIzaSyClc9aUg3vRcbJYhqc9NLtQlmpGclH7hMI";
 
         // ==========================================
@@ -123,9 +145,8 @@
 
         let selectedMovies = JSON.parse(localStorage.getItem('votos_tec_nvm')) || [];
         let hasVoted = localStorage.getItem('voted_status_tec') === 'true';
-        
-        // Array para guardar los reproductores de YouTube
         let ytPlayers = [];
+        let chartInstance = null; // Guardará el gráfico en memoria
 
         function renderMovies() {
             const grid = document.getElementById('catalog-grid');
@@ -133,11 +154,9 @@
             moviesData.forEach((m, index) => {
                 const isSelected = selectedMovies.includes(m.title);
                 const card = document.createElement('div');
-                // Se asigna la clase general. El borde se manejará dinámicamente sin recargar
                 card.className = `movie-card rounded-2xl overflow-hidden relative ${hasVoted && !isSelected ? 'disabled-card' : ''}`;
                 if (isSelected) card.classList.add('ring-4', 'ring-red-600');
                 
-                // NOTA: Se añadió ?enablejsapi=1 a la URL del iframe para poder controlarlo con JS
                 card.innerHTML = `
                     <div class="absolute top-3 right-3 z-10">
                         <input type="checkbox" value="${m.title}" ${isSelected ? 'checked' : ''} ${hasVoted ? 'disabled' : ''} 
@@ -177,12 +196,9 @@
             updateInterface();
         }
 
-        // ==========================================
-        // CONTROLADOR DE CLICS (SIN PARPADEOS)
-        // ==========================================
         document.getElementById('catalog-grid').addEventListener('change', e => {
             if (e.target.classList.contains('movie-checkbox')) {
-                const card = e.target.closest('.movie-card'); // Seleccionamos la tarjeta individual
+                const card = e.target.closest('.movie-card'); 
                 
                 if (e.target.checked) {
                     if (selectedMovies.length >= 6) { 
@@ -190,23 +206,21 @@
                         return; 
                     }
                     selectedMovies.push(e.target.value);
-                    // Solo pintamos esta tarjeta en particular (no recargamos todo)
                     card.classList.add('ring-4', 'ring-red-600');
                 } else {
                     selectedMovies = selectedMovies.filter(t => t !== e.target.value);
-                    // Removemos el color solo de esta tarjeta
                     card.classList.remove('ring-4', 'ring-red-600');
                 }
                 
                 localStorage.setItem('votos_tec_nvm', JSON.stringify(selectedMovies));
-                updateInterface(); // Actualiza los numeritos de abajo
+                updateInterface(); 
             }
         });
 
         function updateInterface() {
             const count = selectedMovies.length;
             document.getElementById('counter').textContent = count;
-            document.getElementById('selection-bar').classList.toggle('translate-y-full', count === 0);
+            document.getElementById('selection-bar').classList.toggle('translate-y-full', count === 0 && !hasVoted);
             
             const btn = document.getElementById('btn-submit');
             if (count === 6 && !hasVoted) {
@@ -223,6 +237,97 @@
         }
 
         // ==========================================
+        // DIBUJAR GRÁFICO DE RESULTADOS
+        // ==========================================
+        async function fetchAndRenderChart() {
+            document.getElementById('results-section').classList.remove('hidden');
+            const loader = document.getElementById('chart-loading');
+            const ctx = document.getElementById('rankingChart').getContext('2d');
+            
+            // Colores vibrantes estilo Google Sheets
+            const colors = ['#2563eb', '#f59e0b', '#eab308', '#dc2626', '#16a34a', '#06b6d4', '#9ca3af', '#ec4899', '#8b5cf6'];
+            
+            try {
+                // Intentamos pedir los datos al Google Script actualizado
+                const res = await fetch(GOOGLE_SCRIPT_URL);
+                if (!res.ok) throw new Error("Requiere actualizar el Apps Script");
+                
+                const data = await res.json();
+                loader.classList.add('hidden');
+                
+                // Mostrar solo el Top 15 para que no se amontone
+                const topData = data.slice(0, 15);
+                const labels = topData.map(d => d.movie);
+                const votes = topData.map(d => d.votes);
+                
+                if(chartInstance) chartInstance.destroy();
+                
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total Votos',
+                            data: votes,
+                            backgroundColor: colors,
+                            borderWidth: 1,
+                            borderColor: '#1e293b',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                ticks: { color: '#cbd5e1', stepSize: 1 }, 
+                                grid: { color: '#334155', drawBorder: false } 
+                            },
+                            x: { 
+                                ticks: { color: '#cbd5e1', font: { size: 10 }, maxRotation: 45, minRotation: 45 }, 
+                                grid: { display: false } 
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                // Si la URL aún no está actualizada o el CORS bloquea, 
+                // generamos un gráfico temporal local para no dejar vacía la pantalla
+                loader.classList.add('hidden');
+                let localCounts = {};
+                selectedMovies.forEach(m => localCounts[m] = 1);
+                
+                if(chartInstance) chartInstance.destroy();
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(localCounts),
+                        datasets: [{
+                            label: 'Tus Votos',
+                            data: Object.values(localCounts),
+                            backgroundColor: '#dc2626',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { display: false },
+                            title: { display: true, text: 'Actualiza el código de Apps Script para ver el ranking global', color: '#fbbf24' }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { color: '#cbd5e1', stepSize: 1 }, grid: { color: '#334155' } },
+                            x: { ticks: { color: '#cbd5e1' }, grid: { display: false } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // ==========================================
         // ENVÍO DE DATOS A GOOGLE SHEETS
         // ==========================================
         document.getElementById('btn-submit').onclick = async () => {
@@ -234,8 +339,6 @@
             spinner.classList.remove('hidden');
 
             const fd = new FormData();
-            
-            // OBTENER IP Y NAVEGADOR
             fd.append('userAgent', navigator.userAgent);
             try {
                 const ipRes = await fetch('https://api.ipify.org?format=json');
@@ -252,11 +355,10 @@
                     await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: fd });
                 }
                 
-                // Finalizamos el voto
                 localStorage.setItem('voted_status_tec', 'true');
                 hasVoted = true;
                 
-                // En lugar de reconstruir toda la página, solo apagamos visualmente las no seleccionadas
+                // Apagamos visualmente las no seleccionadas
                 updateInterface();
                 document.querySelectorAll('.movie-card').forEach((card) => {
                     const checkbox = card.querySelector('.movie-checkbox');
@@ -266,7 +368,13 @@
                     }
                 });
 
+                // NUEVO: Ocultamos la barra de envío, subimos y mostramos el gráfico
+                document.getElementById('selection-bar').classList.add('hidden');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+                
+                // Esperamos un segundo para que los datos lleguen a Google y cargamos el gráfico
+                setTimeout(fetchAndRenderChart, 1500);
+
             } catch (e) {
                 alert("Error de conexión con la base de datos.");
                 btnText.textContent = "Enviar tu Voto";
@@ -283,7 +391,7 @@
         }
 
         // ==========================================
-        // SISTEMA IA: AUTO-DETECT + PLAN B DINÁMICO
+        // SISTEMA IA
         // ==========================================
         async function askAI() {
             const resBox = document.getElementById('ai-result');
@@ -446,9 +554,6 @@
             document.getElementById('ai-modal').classList.remove('flex');
         }
 
-        // ==========================================
-        // CONTROL MAGISTRAL DE AUDIOS (API YOUTUBE)
-        // ==========================================
         function loadYouTubeAPI() {
             var tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
@@ -456,15 +561,12 @@
             firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         }
 
-        // Esta función es llamada automáticamente por YouTube cuando su script está listo
         function onYouTubeIframeAPIReady() {
             moviesData.forEach((m, index) => {
                 let player = new YT.Player(`player-${index}`, {
                     events: {
                         'onStateChange': function(event) {
-                            // Si el estado es 1 (Reproduciendo)
                             if (event.data == YT.PlayerState.PLAYING) {
-                                // Buscamos y pausamos todos los demás videos
                                 ytPlayers.forEach(p => {
                                     if (p !== event.target && typeof p.pauseVideo === 'function') {
                                         p.pauseVideo();
@@ -479,8 +581,13 @@
         }
 
         window.onload = () => {
-            renderMovies(); // Dibuja la cartelera
-            loadYouTubeAPI(); // Inicia la magia para pausar videos cruzados
+            renderMovies(); 
+            loadYouTubeAPI(); 
+            // Si ya votó anteriormente, mostramos el gráfico al cargar
+            if(hasVoted) {
+                document.getElementById('selection-bar').classList.add('hidden');
+                fetchAndRenderChart();
+            }
         };
     </script>
 </body>
